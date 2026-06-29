@@ -1,57 +1,127 @@
-# SnapCal
+<div align="center">
 
-SnapCal is a Singapore-first calorie and meal logging PWA for people who want to lose fat without fighting generic Western food databases.
+# 📸 SnapCal
 
-Live prototype: [snapcal-omega.vercel.app](https://snapcal-omega.vercel.app)
+### Snap a photo. Log the meal. Lose the fat.
 
-The product direction is simple: take a food photo, pick the closest match, log the meal, and get timely feedback against a daily weight-loss target. The current build focuses on Singapore hawker and food-court meals, bilingual food-name handling, cloud sync, daily weight tracking, and pragmatic nutrition ranges instead of false precision.
+**A Singapore-first calorie & meal-tracking PWA — built for laksa, cai png and yong tau foo, not generic Western food databases.**
 
-## Why This Exists
+[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-snapcal--omega.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://snapcal-omega.vercel.app)
 
-Most calorie trackers are powerful but high-friction: search-heavy, barcode-heavy, and not tuned for mixed local meals like yong tau foo, lei cha, cai png, fish soup, laksa, or nasi lemak.
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript_5-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
 
-SnapCal is exploring a more local flow:
+</div>
 
-- photo-first meal capture
-- three likely food guesses instead of manual typing
-- Singapore food database with hawker-style portion ranges
-- AI fallback when the local database cannot match a food
-- automatic database enrichment after a new food is confirmed
-- daily calorie feedback tied to fat-loss goals
-- optional body-weight logging
+---
 
-## Current Features
+## ✨ The 10-Second Pitch
 
-- Mobile-first logging flow on `/`
-- Photo upload with browser-side image compression
-- Heuristic Singapore food recognition with optional AI vision fallback
-- Saved meal shortcuts after repeated foods
-- Today, History, Settings, and Welcome flows
-- Email/password cloud sync through Supabase
-- Browser-storage fallback when cloud env vars are missing
-- Daily body-weight records
-- Manual sync and retry controls
-- Supabase RLS migrations for user-owned records
+> Most calorie trackers are powerful but high-friction — search-heavy, barcode-heavy, and clueless about a plate of **cai png** with three mixed dishes. SnapCal flips the flow: **take a photo → pick from three smart guesses → done.** It speaks Singapore hawker food natively, gives you honest portion *ranges* instead of fake precision, and quietly nudges you toward a daily fat-loss target.
 
-## Tech Stack
+<div align="center">
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- Supabase Auth and Postgres
-- OpenAI-compatible vision analysis endpoint
-- Vercel deployment
+| 🍜 Local-first | 📷 Photo-first | 🎯 Goal-first |
+|:---:|:---:|:---:|
+| Tuned for hawker & food-court meals | Three likely guesses, zero typing | Daily feedback against your fat-loss target |
 
-## Local Development
+</div>
 
-Install dependencies:
+---
 
-```bash
-npm install
+## 🔥 Why This Exists
+
+Generic trackers choke on the way Singaporeans actually eat — yong tau foo, lei cha, cai png, fish soup, laksa, nasi lemak. SnapCal is an experiment in a flow that fits the local plate:
+
+- 🖼️ **Photo-first capture** — point, shoot, log
+- 🤖 **Three smart guesses** instead of manual search-and-type
+- 🇸🇬 **Singapore food database** with hawker-style portion ranges
+- 🧠 **AI vision fallback** when the local database can't find a match
+- 🌱 **Self-enriching database** — confirmed foods make the next match smarter
+- 📊 **Honest nutrition ranges** instead of false precision
+- ⚖️ **Optional body-weight logging** to close the feedback loop
+
+---
+
+## 🚀 Features
+
+| | |
+|---|---|
+| 📱 **Mobile-first flow** | The entire logging journey lives on a thumb-friendly home screen |
+| 📷 **Photo upload + compression** | Browser-side image compression before anything leaves the device |
+| 🍱 **Hybrid food recognition** | Heuristic Singapore matcher first, AI vision as graceful fallback |
+| ⚡ **Saved meal shortcuts** | Repeated foods become one-tap logs |
+| 🗂️ **Today · History · Settings · Welcome** | Clean, focused screens for each job |
+| ☁️ **Cloud sync** | Email/password auth + Postgres via Supabase |
+| 💾 **Offline-friendly fallback** | Works on browser storage when cloud env vars are absent |
+| 🔁 **Manual sync & retry** | You stay in control of when data moves |
+| 🔐 **Row-Level Security** | Every record is scoped and locked to its owner |
+
+---
+
+## 🏗️ Architecture
+
+```
+                  ┌──────────────────────────────┐
+                  │      📱 SnapCal PWA           │
+                  │   Next.js 16 · React 19 · TS  │
+                  │        Tailwind CSS 4         │
+                  └───────────────┬──────────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              ▼                   ▼                   ▼
+   ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+   │  🧠 Analyze API  │ │  ☁️ Supabase     │ │ 💾 Browser Store │
+   │ Heuristic ▸ AI   │ │ Auth · Postgres  │ │  Offline fallback│
+   │ vision fallback  │ │ Row-Level Security│ │  (no-cloud mode) │
+   └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
-Create `.env.local` from `.env.example` and add only the services you want to test:
+**The smart bit:** the `/analyze` route always tries the local Singapore heuristic pipeline first. Only when it can't confidently match does it reach for an OpenAI-compatible **or** GLM vision model — and a confirmed result can enrich the database for next time. No AI keys? It degrades gracefully back to heuristics. No cloud? It degrades gracefully to browser storage. **Nothing hard-fails.**
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework** — Next.js 16 (App Router) + React 19
+- **Language** — TypeScript 5
+- **Styling** — Tailwind CSS 4
+- **Backend** — Supabase (Auth + Postgres + RLS)
+- **AI** — OpenAI-compatible & GLM vision endpoints, with heuristic fallback
+- **Delivery** — Installable PWA, deployed on Vercel
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# 1. Install
+npm install
+
+# 2. Configure — copy the example and fill in only what you want to test
+cp .env.example .env.local
+
+# 3. Run
+npm run dev          # → http://localhost:3000
+```
+
+<details>
+<summary><b>📲 Test on your phone (same Wi-Fi)</b></summary>
+
+```bash
+npm run dev:lan
+# then open http://<your-mac-lan-ip>:3000 on your phone
+```
+
+</details>
+
+<details>
+<summary><b>🔑 Environment variables</b></summary>
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
@@ -63,53 +133,55 @@ GLM_ANALYZE_MODEL=glm-4.6v-flashx
 GLM_API_BASE_URL=
 ```
 
-Run the development server:
+Every key is optional — SnapCal runs with whatever you give it and falls back gracefully for the rest.
+
+</details>
+
+<details>
+<summary><b>☁️ Cloud setup (Supabase)</b></summary>
+
+1. Create a Supabase project
+2. Run the SQL files in `supabase/` **in order**
+3. Keep Email auth enabled in Auth Providers
+4. Set the public Supabase env vars + AI keys in Vercel
+
+</details>
+
+---
+
+## 🧰 Scripts
 
 ```bash
-npm run dev
+npm run dev          # Local dev server
+npm run dev:lan      # Dev server exposed on your LAN (phone testing)
+npm run lint         # ESLint
+npm run build        # Production build
+npm run start:lan    # Production server on your LAN
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+---
 
-For phone testing on the same Wi-Fi:
+## 🔒 Privacy by Design
 
-```bash
-npm run dev:lan
-```
+- 🖼️ Uploaded images are **compressed in-browser** for analysis and are **not persisted** to Supabase under the current app model
+- 🔐 Cloud records are scoped by Supabase Auth user id and locked down with **Row-Level Security**
+- 🙈 `.env.local`, Vercel metadata, personal health imports, build output and scaffold files are intentionally **git-ignored**
 
-Then open `http://<your-mac-lan-ip>:3000`.
+---
 
-## Cloud Setup
+## 🗺️ Roadmap
 
-1. Create a Supabase project.
-2. Run the SQL files in `supabase/` in order.
-3. Keep Email auth enabled in Supabase Auth Providers.
-4. Set the public Supabase env vars and AI provider keys in Vercel.
+- [ ] ⚡ Faster capture flow with tap-to-confirm food guesses
+- [ ] 🛡️ Duplicate-meal protection for repeated taps
+- [ ] ✏️ Richer meal edit & delete flows
+- [ ] 🍲 Larger Singapore hawker food database
+- [ ] 🧠 AI-assisted nutrition fallback with review-before-enrich
+- [ ] 🚀 GitHub-driven Vercel previews & production deploys
 
-If Supabase env vars are missing, SnapCal still works locally with browser storage. If AI keys are missing or the model call fails, the analysis route falls back to the local Singapore food heuristic pipeline.
+---
 
-## Privacy Notes
+<div align="center">
 
-- Raw uploaded images are compressed in the browser for analysis and are not persisted to Supabase by the current app state model.
-- Cloud records are scoped by Supabase Auth user id and protected by RLS policies.
-- `.env.local`, Vercel project metadata, local personal health imports, build output, and temporary scaffold files are intentionally ignored by Git.
+**Built with ❤️ in Singapore** · [Live Demo →](https://snapcal-omega.vercel.app)
 
-## Useful Commands
-
-```bash
-npm run dev
-npm run dev:lan
-npm run lint
-npm run build
-npm run start:lan
-```
-
-## Roadmap
-
-- Faster mobile capture flow with tap-to-confirm food guesses
-- Duplicate meal protection for repeated taps
-- Better meal edit and delete flows
-- Bulk import only for developer migration, not normal users
-- Larger Singapore hawker food database
-- AI-assisted nutrition fallback with review before database enrichment
-- GitHub-driven Vercel previews and production deploys
+</div>

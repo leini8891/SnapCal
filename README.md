@@ -1,86 +1,98 @@
 # SnapCal
 
-SnapCal is a Singapore-first hawker food logging PWA prototype built with Next.js. The current app includes:
+SnapCal is a Singapore-first calorie and meal logging PWA for people who want to lose fat without fighting generic Western food databases.
 
-- a primary logging flow on `/`
-- shared persisted state across `/today`, `/history`, and `/settings`
-- a `/welcome` setup flow for goal, pace, and Free vs Pro selection
-- auto-promoted saved shortcuts after repeated meals
-- browser-storage fallback with optional private Supabase sync
-- email/password cloud login plus manual sync/retry controls in Settings
-- heuristic meal analysis with optional OpenAI vision upgrade
-- Supabase schema and hardening migrations in `supabase/`
+Live prototype: [snapcal-omega.vercel.app](https://snapcal-omega.vercel.app)
 
-## Getting Started
+The product direction is simple: take a food photo, pick the closest match, log the meal, and get timely feedback against a daily weight-loss target. The current build focuses on Singapore hawker and food-court meals, bilingual food-name handling, cloud sync, daily weight tracking, and pragmatic nutrition ranges instead of false precision.
 
-1. Install dependencies:
+## Why This Exists
+
+Most calorie trackers are powerful but high-friction: search-heavy, barcode-heavy, and not tuned for mixed local meals like yong tau foo, lei cha, cai png, fish soup, laksa, or nasi lemak.
+
+SnapCal is exploring a more local flow:
+
+- photo-first meal capture
+- three likely food guesses instead of manual typing
+- Singapore food database with hawker-style portion ranges
+- AI fallback when the local database cannot match a food
+- automatic database enrichment after a new food is confirmed
+- daily calorie feedback tied to fat-loss goals
+- optional body-weight logging
+
+## Current Features
+
+- Mobile-first logging flow on `/`
+- Photo upload with browser-side image compression
+- Heuristic Singapore food recognition with optional AI vision fallback
+- Saved meal shortcuts after repeated foods
+- Today, History, Settings, and Welcome flows
+- Email/password cloud sync through Supabase
+- Browser-storage fallback when cloud env vars are missing
+- Daily body-weight records
+- Manual sync and retry controls
+- Supabase RLS migrations for user-owned records
+
+## Tech Stack
+
+- Next.js App Router
+- React
+- TypeScript
+- Tailwind CSS
+- Supabase Auth and Postgres
+- OpenAI-compatible vision analysis endpoint
+- Vercel deployment
+
+## Local Development
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Optional: add environment variables to `.env.local`:
+Create `.env.local` from `.env.example` and add only the services you want to test:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
-OPENAI_API_KEY=your_openai_api_key
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+OPENAI_API_KEY=
 OPENAI_ANALYZE_MODEL=gpt-4.1-mini
+GLM_API_KEY=
+GLM_ANALYZE_MODEL=glm-4.6v-flashx
+GLM_API_BASE_URL=
 ```
 
-If you enable Supabase for the pilot cloud flow, keep Supabase Email auth enabled
-and sign in before writing cloud records. Anonymous sign-ins are not required for
-the personal cloud build. Email confirmation can stay on; for a private
-single-user pilot, use custom SMTP or disable email confirmation if Supabase's
-default email rate limit blocks testing.
-
-3. Run the development server:
+Run the development server:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-For phone testing on the same Wi-Fi, prefer the LAN-hosted command:
+For phone testing on the same Wi-Fi:
 
 ```bash
 npm run dev:lan
 ```
 
-Then open `http://<your-mac-lan-ip>:3000`, for example
-`http://192.168.1.54:3000/demo`.
-
-If Supabase env vars are not set, SnapCal will continue using browser storage so the app stays fully usable during development. If `OPENAI_API_KEY` is not set, the meal analysis route falls back to the local SG heuristic pipeline automatically.
-
-## Current Architecture
-
-- [src/components/snapcal-provider.tsx](src/components/snapcal-provider.tsx)
-- [src/components/snapcal-welcome.tsx](src/components/snapcal-welcome.tsx)
-- [src/lib/supabase/client.ts](src/lib/supabase/client.ts)
-- [src/lib/mock-data.ts](src/lib/mock-data.ts)
-- [src/lib/analyze/meal-analysis.ts](src/lib/analyze/meal-analysis.ts)
-- [src/lib/analyze/glm-analysis.ts](src/lib/analyze/glm-analysis.ts)
-- [src/lib/analyze/openai-analysis.ts](src/lib/analyze/openai-analysis.ts)
-- [src/lib/food-catalog.ts](src/lib/food-catalog.ts)
-- [src/lib/snapcal-utils.ts](src/lib/snapcal-utils.ts)
+Then open `http://<your-mac-lan-ip>:3000`.
 
 ## Cloud Setup
 
-1. Create a Supabase project and run the SQL files in `supabase/` in order.
-2. Keep Email auth enabled in Supabase Auth Providers. Do not enable Anonymous
-   sign-ins for the personal cloud deployment.
-3. Set these variables locally and in Vercel:
+1. Create a Supabase project.
+2. Run the SQL files in `supabase/` in order.
+3. Keep Email auth enabled in Supabase Auth Providers.
+4. Set the public Supabase env vars and AI provider keys in Vercel.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
-GLM_API_KEY=...
-GLM_ANALYZE_MODEL=glm-4.6v-flashx
-GLM_API_BASE_URL=...
-```
+If Supabase env vars are missing, SnapCal still works locally with browser storage. If AI keys are missing or the model call fails, the analysis route falls back to the local Singapore food heuristic pipeline.
 
-`OPENAI_API_KEY` is optional. The current private pilot can use GLM only.
+## Privacy Notes
+
+- Raw uploaded images are compressed in the browser for analysis and are not persisted to Supabase by the current app state model.
+- Cloud records are scoped by Supabase Auth user id and protected by RLS policies.
+- `.env.local`, Vercel project metadata, local personal health imports, build output, and temporary scaffold files are intentionally ignored by Git.
 
 ## Useful Commands
 
@@ -92,12 +104,12 @@ npm run build
 npm run start:lan
 ```
 
-## Notes
+## Roadmap
 
-- Supabase cloud sync uses email/password Auth. RLS policies restrict rows to
-  the signed-in user.
-- Settings exposes cloud session state, last sync time, and manual sync / retry actions.
-- The app still keeps a local browser snapshot for resilience during development.
-- OpenAI image analysis is optional and server-side only; the route downgrades to heuristics if the model call fails.
-- Mobile photo uploads are compressed in the browser before analysis. Raw image files are not persisted to Supabase or local SnapCal state.
-- The temporary `bootstrap-app/` scaffold copy remains in the workspace but is ignored by ESLint.
+- Faster mobile capture flow with tap-to-confirm food guesses
+- Duplicate meal protection for repeated taps
+- Better meal edit and delete flows
+- Bulk import only for developer migration, not normal users
+- Larger Singapore hawker food database
+- AI-assisted nutrition fallback with review before database enrichment
+- GitHub-driven Vercel previews and production deploys

@@ -1,0 +1,2 @@
+.env*
+src/lib/personal-health-data.ts

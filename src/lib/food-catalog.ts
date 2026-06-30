@@ -972,6 +972,2316 @@ export const candidateMeals: CandidateMeal[] = [
       { id: "extra-coconut-cendol", label: "Extra coconut milk", delta: [70, 140] },
       { id: "shared-cendol", label: "Shared dessert", delta: [-170, -110] },
     ],
+  },
+  {
+    id: "char-siew-bao",
+    name: "Char Siew Bao",
+    chineseName: "叉烧包",
+    confidence: "Medium",
+    baseRange: [
+      180,
+      320
+    ],
+    macroRange: {
+      protein: [
+        6,
+        13
+      ],
+      carbs: [
+        28,
+        48
+      ],
+      fat: [
+        4,
+        11
+      ]
+    },
+    note: "One steamed barbecue pork bun. Larger buns and sweeter fatty filling push the range up.",
+    aliases: [
+      "char siew bao",
+      "char siu bao",
+      "bbq pork bun",
+      "叉烧包",
+      "叉燒包"
+    ],
+    defaultModifierIds: [
+      "one-char-siew-bao"
+    ],
+    modifiers: [
+      {
+        id: "one-char-siew-bao",
+        label: "1 bun",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "two-char-siew-bao",
+        label: "2 buns",
+        delta: [
+          180,
+          320
+        ]
+      },
+      {
+        id: "large-char-siew-bao",
+        label: "Large bun",
+        delta: [
+          70,
+          130
+        ]
+      }
+    ]
+  },
+  {
+    id: "liu-sha-bao",
+    name: "Salted Egg Custard Bun",
+    chineseName: "流沙包",
+    confidence: "Medium",
+    baseRange: [
+      190,
+      340
+    ],
+    macroRange: {
+      protein: [
+        5,
+        10
+      ],
+      carbs: [
+        28,
+        48
+      ],
+      fat: [
+        6,
+        15
+      ]
+    },
+    note: "Molten custard bun. Butterier salted egg fillings make the small bun surprisingly dense.",
+    aliases: [
+      "liu sha bao",
+      "molten custard bun",
+      "salted egg bun",
+      "流沙包",
+      "咸蛋流沙包"
+    ],
+    defaultModifierIds: [
+      "one-liu-sha-bao"
+    ],
+    modifiers: [
+      {
+        id: "one-liu-sha-bao",
+        label: "1 bun",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "two-liu-sha-bao",
+        label: "2 buns",
+        delta: [
+          190,
+          340
+        ]
+      },
+      {
+        id: "mini-liu-sha-bao",
+        label: "Mini bun",
+        delta: [
+          -80,
+          -45
+        ]
+      }
+    ]
+  },
+  {
+    id: "egg-tart",
+    name: "Egg Tart",
+    chineseName: "蛋挞",
+    confidence: "Medium",
+    baseRange: [
+      170,
+      300
+    ],
+    macroRange: {
+      protein: [
+        4,
+        8
+      ],
+      carbs: [
+        18,
+        35
+      ],
+      fat: [
+        8,
+        17
+      ]
+    },
+    note: "One bakery or dim sum egg tart. Flaky pastry versions are usually higher in fat.",
+    aliases: [
+      "egg tart",
+      "dan tat",
+      "dan ta",
+      "egg custard tart",
+      "蛋挞",
+      "蛋塔",
+      "港式蛋挞"
+    ],
+    defaultModifierIds: [
+      "one-egg-tart"
+    ],
+    modifiers: [
+      {
+        id: "one-egg-tart",
+        label: "1 tart",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "two-egg-tarts",
+        label: "2 tarts",
+        delta: [
+          170,
+          300
+        ]
+      },
+      {
+        id: "flaky-egg-tart",
+        label: "Flaky pastry",
+        delta: [
+          35,
+          80
+        ]
+      },
+      {
+        id: "mini-egg-tart",
+        label: "Mini tart",
+        delta: [
+          -80,
+          -45
+        ]
+      }
+    ]
+  },
+  {
+    id: "fan-choy",
+    name: "Fan Choy",
+    chineseName: "饭菜",
+    confidence: "Medium",
+    baseRange: [
+      320,
+      560
+    ],
+    macroRange: {
+      protein: [
+        10,
+        22
+      ],
+      carbs: [
+        45,
+        80
+      ],
+      fat: [
+        8,
+        24
+      ]
+    },
+    note: "Steamed rice cup with char siew, sausage, chicken, or gravy. Compact but not necessarily light.",
+    aliases: [
+      "fan choy",
+      "fanchoy",
+      "steamed rice cup",
+      "饭菜",
+      "蒸饭"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "small-fan-choy",
+        label: "Small cup",
+        delta: [
+          -90,
+          -50
+        ]
+      },
+      {
+        id: "sausage-fan-choy",
+        label: "Chinese sausage",
+        delta: [
+          70,
+          130
+        ]
+      },
+      {
+        id: "extra-gravy-fan-choy",
+        label: "Extra gravy",
+        delta: [
+          25,
+          60
+        ]
+      }
+    ]
+  },
+  {
+    id: "you-tiao",
+    name: "You Tiao",
+    chineseName: "油条",
+    confidence: "Medium",
+    baseRange: [
+      180,
+      360
+    ],
+    macroRange: {
+      protein: [
+        4,
+        9
+      ],
+      carbs: [
+        22,
+        45
+      ],
+      fat: [
+        8,
+        22
+      ]
+    },
+    note: "Deep-fried dough fritter. Usually one stick; easy to forget when it comes with porridge, soy milk, or bak kut teh.",
+    aliases: [
+      "you tiao",
+      "youtiao",
+      "you char kway",
+      "dough fritter",
+      "油条",
+      "油炸鬼"
+    ],
+    defaultModifierIds: [
+      "one-you-tiao"
+    ],
+    modifiers: [
+      {
+        id: "one-you-tiao",
+        label: "1 stick",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "half-you-tiao",
+        label: "Half stick",
+        delta: [
+          -150,
+          -85
+        ]
+      },
+      {
+        id: "two-you-tiao",
+        label: "2 sticks",
+        delta: [
+          180,
+          360
+        ]
+      }
+    ]
+  },
+  {
+    id: "curry-puff",
+    name: "Curry Puff",
+    chineseName: "咖喱角",
+    confidence: "Medium",
+    baseRange: [
+      220,
+      430
+    ],
+    macroRange: {
+      protein: [
+        5,
+        13
+      ],
+      carbs: [
+        25,
+        48
+      ],
+      fat: [
+        10,
+        25
+      ]
+    },
+    note: "One curry puff with potato curry and sometimes chicken or egg. Spiral fried pastry is usually heavier than baked.",
+    aliases: [
+      "curry puff",
+      "karipap",
+      "epok epok",
+      "curry pok",
+      "咖喱角",
+      "咖喱卜"
+    ],
+    defaultModifierIds: [
+      "one-curry-puff"
+    ],
+    modifiers: [
+      {
+        id: "one-curry-puff",
+        label: "1 puff",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "two-curry-puffs",
+        label: "2 puffs",
+        delta: [
+          220,
+          430
+        ]
+      },
+      {
+        id: "egg-curry-puff",
+        label: "With egg",
+        delta: [
+          45,
+          80
+        ]
+      }
+    ]
+  },
+  {
+    id: "min-jiang-kueh",
+    name: "Min Jiang Kueh",
+    chineseName: "面煎粿",
+    confidence: "Medium",
+    baseRange: [
+      180,
+      360
+    ],
+    macroRange: {
+      protein: [
+        5,
+        11
+      ],
+      carbs: [
+        30,
+        58
+      ],
+      fat: [
+        4,
+        15
+      ]
+    },
+    note: "Local pancake slice. Peanut, coconut, red bean, and extra sugar change the range quickly.",
+    aliases: [
+      "min jiang kueh",
+      "mee chiang kueh",
+      "peanut pancake",
+      "apam balik",
+      "面煎粿",
+      "面煎糕",
+      "花生煎饼"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "peanut-mjk",
+        label: "Peanut filling",
+        delta: [
+          35,
+          80
+        ]
+      },
+      {
+        id: "coconut-mjk",
+        label: "Coconut filling",
+        delta: [
+          20,
+          55
+        ]
+      },
+      {
+        id: "red-bean-mjk",
+        label: "Red bean filling",
+        delta: [
+          25,
+          65
+        ]
+      },
+      {
+        id: "half-mjk",
+        label: "Half piece",
+        delta: [
+          -150,
+          -85
+        ]
+      }
+    ]
+  },
+  {
+    id: "soon-kueh",
+    name: "Soon Kueh",
+    chineseName: "笋粿",
+    confidence: "Medium",
+    baseRange: [
+      120,
+      260
+    ],
+    macroRange: {
+      protein: [
+        3,
+        8
+      ],
+      carbs: [
+        22,
+        42
+      ],
+      fat: [
+        2,
+        10
+      ]
+    },
+    note: "One steamed turnip or bamboo shoot dumpling. Sauce and chilli are small, but piece count matters.",
+    aliases: [
+      "soon kueh",
+      "soon kway",
+      "turnip dumpling",
+      "笋粿",
+      "菜粿"
+    ],
+    defaultModifierIds: [
+      "one-soon-kueh"
+    ],
+    modifiers: [
+      {
+        id: "one-soon-kueh",
+        label: "1 piece",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "two-soon-kueh",
+        label: "2 pieces",
+        delta: [
+          120,
+          260
+        ]
+      },
+      {
+        id: "pan-fried-soon-kueh",
+        label: "Pan-fried",
+        delta: [
+          35,
+          80
+        ]
+      }
+    ]
+  },
+  {
+    id: "economy-bee-hoon",
+    name: "Economy Bee Hoon",
+    chineseName: "经济米粉",
+    confidence: "Medium",
+    baseRange: [
+      350,
+      700
+    ],
+    macroRange: {
+      protein: [
+        8,
+        25
+      ],
+      carbs: [
+        55,
+        100
+      ],
+      fat: [
+        9,
+        30
+      ]
+    },
+    note: "Breakfast fried bee hoon plate. Plain bee hoon is modest; egg, luncheon meat, fishcake, or wing makes it a full meal.",
+    aliases: [
+      "economy bee hoon",
+      "economic bee hoon",
+      "fried bee hoon",
+      "经济米粉",
+      "炒米粉"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "plain-economy-bee-hoon",
+        label: "Plain bee hoon",
+        delta: [
+          -120,
+          -70
+        ]
+      },
+      {
+        id: "add-egg-economy-bee-hoon",
+        label: "Add egg",
+        delta: [
+          60,
+          85
+        ]
+      },
+      {
+        id: "add-luncheon-meat-economy-bee-hoon",
+        label: "Luncheon meat",
+        delta: [
+          120,
+          180
+        ]
+      },
+      {
+        id: "add-wing-economy-bee-hoon",
+        label: "Chicken wing",
+        delta: [
+          180,
+          250
+        ]
+      }
+    ]
+  },
+  {
+    id: "hor-fun",
+    name: "Hor Fun",
+    chineseName: "河粉",
+    confidence: "Medium",
+    baseRange: [
+      520,
+      850
+    ],
+    macroRange: {
+      protein: [
+        18,
+        36
+      ],
+      carbs: [
+        65,
+        105
+      ],
+      fat: [
+        16,
+        36
+      ]
+    },
+    note: "Wok-fried flat rice noodles with gravy. Seafood, beef, and oil-heavy stalls change the range a lot.",
+    aliases: [
+      "hor fun",
+      "wat tan hor",
+      "滑蛋河粉",
+      "河粉",
+      "炒河粉"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "small-hor-fun",
+        label: "Small plate",
+        delta: [
+          -170,
+          -100
+        ]
+      },
+      {
+        id: "beef-hor-fun-version",
+        label: "Beef version",
+        delta: [
+          40,
+          90
+        ]
+      },
+      {
+        id: "seafood-hor-fun-version",
+        label: "Seafood version",
+        delta: [
+          45,
+          100
+        ]
+      },
+      {
+        id: "less-gravy-hor-fun",
+        label: "Less gravy",
+        delta: [
+          -40,
+          -20
+        ]
+      }
+    ]
+  },
+  {
+    id: "duck-rice",
+    name: "Duck Rice",
+    chineseName: "鸭饭",
+    confidence: "Medium",
+    baseRange: [
+      560,
+      880
+    ],
+    macroRange: {
+      protein: [
+        24,
+        44
+      ],
+      carbs: [
+        60,
+        95
+      ],
+      fat: [
+        20,
+        42
+      ]
+    },
+    note: "Braised or roasted duck with rice. Skin-on portions and gravy are the main levers.",
+    aliases: [
+      "duck rice",
+      "braised duck rice",
+      "roast duck rice",
+      "卤鸭饭",
+      "烧鸭饭",
+      "鸭饭"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "half-rice-duck-rice",
+        label: "Half rice",
+        delta: [
+          -120,
+          -80
+        ]
+      },
+      {
+        id: "skinless-duck-rice",
+        label: "Skin removed",
+        delta: [
+          -80,
+          -45
+        ]
+      },
+      {
+        id: "extra-duck-rice",
+        label: "Extra duck",
+        delta: [
+          120,
+          220
+        ]
+      },
+      {
+        id: "extra-gravy-duck-rice",
+        label: "Extra gravy",
+        delta: [
+          30,
+          70
+        ]
+      }
+    ]
+  },
+  {
+    id: "roast-meat-rice",
+    name: "Roast Meat Rice",
+    chineseName: "烧腊饭",
+    confidence: "Medium",
+    baseRange: [
+      620,
+      1050
+    ],
+    macroRange: {
+      protein: [
+        26,
+        52
+      ],
+      carbs: [
+        60,
+        100
+      ],
+      fat: [
+        24,
+        58
+      ]
+    },
+    note: "Mixed roast duck, char siew, or crispy roast pork over rice. The meat choice decides most of the range.",
+    aliases: [
+      "roast meat rice",
+      "mixed roast rice",
+      "shao la rice",
+      "char siew rice",
+      "roast pork rice",
+      "烧腊饭",
+      "叉烧饭",
+      "烧肉饭",
+      "三拼饭",
+      "双拼饭"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "half-rice-roast-meat",
+        label: "Half rice",
+        delta: [
+          -120,
+          -80
+        ]
+      },
+      {
+        id: "char-siew-roast-meat",
+        label: "Char siew",
+        delta: [
+          -40,
+          40
+        ]
+      },
+      {
+        id: "roast-pork-roast-meat",
+        label: "Crispy roast pork",
+        delta: [
+          100,
+          180
+        ]
+      },
+      {
+        id: "double-meat-roast-meat",
+        label: "Double meat",
+        delta: [
+          180,
+          320
+        ]
+      },
+      {
+        id: "less-sauce-roast-meat",
+        label: "Less sauce",
+        delta: [
+          -35,
+          -15
+        ]
+      }
+    ]
+  },
+  {
+    id: "ayam-penyet",
+    name: "Ayam Penyet",
+    chineseName: "印尼炸鸡饭",
+    confidence: "Medium",
+    baseRange: [
+      680,
+      1050
+    ],
+    macroRange: {
+      protein: [
+        28,
+        52
+      ],
+      carbs: [
+        65,
+        105
+      ],
+      fat: [
+        28,
+        55
+      ]
+    },
+    note: "Smashed fried chicken with rice, sambal, tofu, or tempeh. Fried sides and skin drive the upper end.",
+    aliases: [
+      "ayam penyet",
+      "smashed fried chicken rice",
+      "ayam penyet rice",
+      "印尼炸鸡饭",
+      "压扁鸡饭"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "half-rice-ayam-penyet",
+        label: "Half rice",
+        delta: [
+          -120,
+          -80
+        ]
+      },
+      {
+        id: "skinless-ayam-penyet",
+        label: "Skin removed",
+        delta: [
+          -90,
+          -50
+        ]
+      },
+      {
+        id: "extra-sambal-ayam-penyet",
+        label: "Extra sambal",
+        delta: [
+          40,
+          100
+        ]
+      },
+      {
+        id: "fried-tempeh-ayam-penyet",
+        label: "Fried tempeh/tofu",
+        delta: [
+          90,
+          170
+        ]
+      }
+    ]
+  },
+  {
+    id: "kway-chap",
+    name: "Kway Chap",
+    chineseName: "粿汁",
+    confidence: "Medium",
+    baseRange: [
+      550,
+      950
+    ],
+    macroRange: {
+      protein: [
+        22,
+        48
+      ],
+      carbs: [
+        55,
+        95
+      ],
+      fat: [
+        24,
+        55
+      ]
+    },
+    note: "Flat rice sheets with braised pork, offal, tofu, or egg. Leaner selections are much lighter than pork belly-heavy plates.",
+    aliases: [
+      "kway chap",
+      "kway chap set",
+      "braised kway chap",
+      "粿汁",
+      "卤味粿汁"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "less-kway-kway-chap",
+        label: "Less kway",
+        delta: [
+          -100,
+          -65
+        ]
+      },
+      {
+        id: "lean-kway-chap",
+        label: "Leaner selection",
+        delta: [
+          -150,
+          -80
+        ]
+      },
+      {
+        id: "pork-belly-kway-chap",
+        label: "More pork belly",
+        delta: [
+          160,
+          280
+        ]
+      },
+      {
+        id: "add-egg-kway-chap",
+        label: "Add egg",
+        delta: [
+          60,
+          85
+        ]
+      }
+    ]
+  },
+  {
+    id: "chilli-crab",
+    name: "Chilli Crab",
+    chineseName: "辣椒螃蟹",
+    confidence: "Low",
+    baseRange: [
+      420,
+      850
+    ],
+    macroRange: {
+      protein: [
+        28,
+        55
+      ],
+      carbs: [
+        20,
+        60
+      ],
+      fat: [
+        18,
+        45
+      ]
+    },
+    note: "Logged as a personal shared portion, mostly crab plus chilli egg gravy. Mantou is not included unless added.",
+    aliases: [
+      "chilli crab",
+      "chili crab",
+      "singapore chilli crab",
+      "辣椒螃蟹",
+      "辣椒蟹",
+      "辣蟹"
+    ],
+    defaultModifierIds: [
+      "shared-third-chilli-crab"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-chilli-crab",
+        label: "Shared quarter",
+        delta: [
+          -180,
+          -110
+        ]
+      },
+      {
+        id: "shared-third-chilli-crab",
+        label: "Shared third",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "shared-half-chilli-crab",
+        label: "Shared half",
+        delta: [
+          180,
+          320
+        ]
+      },
+      {
+        id: "extra-gravy-chilli-crab",
+        label: "Extra chilli egg gravy",
+        delta: [
+          60,
+          180
+        ]
+      },
+      {
+        id: "mantou-2pcs-chilli-crab",
+        label: "Add 2 fried mantou",
+        delta: [
+          220,
+          360
+        ]
+      }
+    ]
+  },
+  {
+    id: "cereal-prawn",
+    name: "Cereal Prawn",
+    chineseName: "麦片虾",
+    confidence: "Medium",
+    baseRange: [
+      360,
+      720
+    ],
+    macroRange: {
+      protein: [
+        22,
+        42
+      ],
+      carbs: [
+        22,
+        55
+      ],
+      fat: [
+        18,
+        42
+      ]
+    },
+    note: "Per shared plate portion. Deep-fried prawns with buttery cereal topping are easy to underestimate.",
+    aliases: [
+      "cereal prawn",
+      "cereal prawns",
+      "麦片虾",
+      "麦片明虾",
+      "麦片虾球"
+    ],
+    defaultModifierIds: [
+      "small-plate-cereal-prawn"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-cereal-prawn",
+        label: "Shared quarter",
+        delta: [
+          -220,
+          -120
+        ]
+      },
+      {
+        id: "shared-third-cereal-prawn",
+        label: "Shared third",
+        delta: [
+          -140,
+          -60
+        ]
+      },
+      {
+        id: "small-plate-cereal-prawn",
+        label: "Small plate portion",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "extra-cereal-prawn",
+        label: "Extra cereal topping",
+        delta: [
+          80,
+          220
+        ]
+      }
+    ]
+  },
+  {
+    id: "sambal-stingray",
+    name: "Sambal Stingray",
+    chineseName: "叁巴魔鬼鱼",
+    confidence: "Medium",
+    baseRange: [
+      320,
+      650
+    ],
+    macroRange: {
+      protein: [
+        28,
+        55
+      ],
+      carbs: [
+        8,
+        28
+      ],
+      fat: [
+        16,
+        38
+      ]
+    },
+    note: "Per personal shared portion. Grilled stingray is lean, but oily sambal and cincalok sauce change the total.",
+    aliases: [
+      "sambal stingray",
+      "bbq stingray",
+      "barbecued stingray",
+      "sambal ikan pari",
+      "烤魔鬼鱼",
+      "叁巴魟鱼",
+      "叁巴魔鬼鱼"
+    ],
+    defaultModifierIds: [
+      "shared-third-stingray"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-stingray",
+        label: "Shared quarter",
+        delta: [
+          -190,
+          -95
+        ]
+      },
+      {
+        id: "shared-third-stingray",
+        label: "Shared third",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "shared-half-stingray",
+        label: "Shared half",
+        delta: [
+          120,
+          300
+        ]
+      },
+      {
+        id: "extra-sambal-stingray",
+        label: "Extra sambal",
+        delta: [
+          60,
+          180
+        ]
+      }
+    ]
+  },
+  {
+    id: "salted-egg-squid",
+    name: "Salted Egg Squid",
+    chineseName: "咸蛋苏东",
+    confidence: "Medium",
+    baseRange: [
+      420,
+      820
+    ],
+    macroRange: {
+      protein: [
+        20,
+        38
+      ],
+      carbs: [
+        18,
+        45
+      ],
+      fat: [
+        28,
+        58
+      ]
+    },
+    note: "Per shared plate portion. Usually battered or deep-fried squid with salted egg sauce.",
+    aliases: [
+      "salted egg squid",
+      "salted egg sotong",
+      "salted egg calamari",
+      "咸蛋苏东",
+      "咸蛋鱿鱼",
+      "金沙苏东"
+    ],
+    defaultModifierIds: [
+      "small-plate-salted-egg-squid"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-salted-egg-squid",
+        label: "Shared quarter",
+        delta: [
+          -260,
+          -130
+        ]
+      },
+      {
+        id: "shared-third-salted-egg-squid",
+        label: "Shared third",
+        delta: [
+          -160,
+          -60
+        ]
+      },
+      {
+        id: "small-plate-salted-egg-squid",
+        label: "Small plate portion",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "extra-sauce-salted-egg-squid",
+        label: "Extra salted egg sauce",
+        delta: [
+          100,
+          260
+        ]
+      }
+    ]
+  },
+  {
+    id: "claypot-tofu",
+    name: "Claypot Tofu",
+    chineseName: "砂煲豆腐",
+    confidence: "Medium",
+    baseRange: [
+      280,
+      560
+    ],
+    macroRange: {
+      protein: [
+        14,
+        28
+      ],
+      carbs: [
+        18,
+        42
+      ],
+      fat: [
+        14,
+        34
+      ]
+    },
+    note: "Per personal shared portion. Egg tofu, vegetables, mushrooms, and gravy; meat or seafood versions are higher.",
+    aliases: [
+      "claypot tofu",
+      "claypot beancurd",
+      "claypot bean curd",
+      "砂煲豆腐",
+      "砂锅豆腐",
+      "瓦煲豆腐"
+    ],
+    defaultModifierIds: [
+      "shared-third-claypot-tofu"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-claypot-tofu",
+        label: "Shared quarter",
+        delta: [
+          -170,
+          -80
+        ]
+      },
+      {
+        id: "shared-third-claypot-tofu",
+        label: "Shared third",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "small-plate-claypot-tofu",
+        label: "Small plate portion",
+        delta: [
+          -100,
+          -40
+        ]
+      },
+      {
+        id: "seafood-claypot-tofu",
+        label: "Seafood version",
+        delta: [
+          80,
+          180
+        ]
+      },
+      {
+        id: "extra-gravy-claypot-tofu",
+        label: "Extra gravy",
+        delta: [
+          40,
+          120
+        ]
+      }
+    ]
+  },
+  {
+    id: "prawn-paste-chicken",
+    name: "Prawn Paste Chicken",
+    chineseName: "虾酱鸡",
+    confidence: "Medium",
+    baseRange: [
+      420,
+      760
+    ],
+    macroRange: {
+      protein: [
+        25,
+        48
+      ],
+      carbs: [
+        12,
+        36
+      ],
+      fat: [
+        25,
+        50
+      ]
+    },
+    note: "Per shared plate portion. Deep-fried har cheong gai; wings and mid-joints vary by batter and skin.",
+    aliases: [
+      "prawn paste chicken",
+      "har cheong gai",
+      "shrimp paste chicken",
+      "虾酱鸡",
+      "虾酱鸡翅",
+      "虾酱炸鸡"
+    ],
+    defaultModifierIds: [
+      "small-plate-prawn-paste-chicken"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-prawn-paste-chicken",
+        label: "Shared quarter",
+        delta: [
+          -250,
+          -130
+        ]
+      },
+      {
+        id: "shared-third-prawn-paste-chicken",
+        label: "Shared third",
+        delta: [
+          -150,
+          -60
+        ]
+      },
+      {
+        id: "small-plate-prawn-paste-chicken",
+        label: "Small plate portion",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "extra-chilli-prawn-paste-chicken",
+        label: "Extra chilli sauce",
+        delta: [
+          20,
+          80
+        ]
+      }
+    ]
+  },
+  {
+    id: "crab-bee-hoon",
+    name: "Crab Bee Hoon",
+    chineseName: "螃蟹米粉",
+    confidence: "Low",
+    baseRange: [
+      500,
+      950
+    ],
+    macroRange: {
+      protein: [
+        28,
+        60
+      ],
+      carbs: [
+        55,
+        115
+      ],
+      fat: [
+        16,
+        45
+      ]
+    },
+    note: "Per personal shared portion. Soup and dry versions differ; crab size, broth, and noodle share decide the range.",
+    aliases: [
+      "crab bee hoon",
+      "crab beehoon",
+      "crab vermicelli",
+      "螃蟹米粉",
+      "螃蟹米粉汤",
+      "干炒螃蟹米粉"
+    ],
+    defaultModifierIds: [
+      "shared-third-crab-bee-hoon"
+    ],
+    modifiers: [
+      {
+        id: "shared-quarter-crab-bee-hoon",
+        label: "Shared quarter",
+        delta: [
+          -320,
+          -150
+        ]
+      },
+      {
+        id: "shared-third-crab-bee-hoon",
+        label: "Shared third",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "shared-half-crab-bee-hoon",
+        label: "Shared half",
+        delta: [
+          180,
+          430
+        ]
+      },
+      {
+        id: "extra-broth-crab-bee-hoon",
+        label: "Extra broth or gravy",
+        delta: [
+          40,
+          140
+        ]
+      }
+    ]
+  },
+  {
+    id: "chap-chye",
+    name: "Chap Chye",
+    chineseName: "杂菜",
+    confidence: "Medium",
+    baseRange: [
+      120,
+      260
+    ],
+    macroRange: {
+      protein: [
+        3,
+        10
+      ],
+      carbs: [
+        10,
+        24
+      ],
+      fat: [
+        5,
+        16
+      ]
+    },
+    note: "Braised mixed vegetables with cabbage, mushrooms, beancurd skin, and glass noodles. Oil and portion size matter.",
+    aliases: [
+      "chap chye",
+      "nonya chap chye",
+      "braised mixed vegetables",
+      "mixed veg",
+      "杂菜",
+      "娘惹杂菜"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "shared-chap-chye",
+        label: "Shared portion",
+        delta: [
+          -90,
+          -45
+        ]
+      },
+      {
+        id: "large-chap-chye",
+        label: "Large serving",
+        delta: [
+          70,
+          140
+        ]
+      },
+      {
+        id: "extra-beancurd-skin-chap-chye",
+        label: "More beancurd skin",
+        delta: [
+          40,
+          90
+        ]
+      }
+    ]
+  },
+  {
+    id: "sambal-long-beans",
+    name: "Sambal Long Beans",
+    chineseName: "叁峇长豆",
+    confidence: "Medium",
+    baseRange: [
+      90,
+      220
+    ],
+    macroRange: {
+      protein: [
+        2,
+        6
+      ],
+      carbs: [
+        8,
+        18
+      ],
+      fat: [
+        5,
+        16
+      ]
+    },
+    note: "Common cai png or nasi padang side. Sambal and oil drive most of the calorie swing.",
+    aliases: [
+      "sambal long beans",
+      "sambal kacang panjang",
+      "long beans",
+      "spicy long beans",
+      "叁峇长豆",
+      "辣炒长豆"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "shared-sambal-long-beans",
+        label: "Shared portion",
+        delta: [
+          -70,
+          -35
+        ]
+      },
+      {
+        id: "less-oil-sambal-long-beans",
+        label: "Less oil",
+        delta: [
+          -45,
+          -20
+        ]
+      },
+      {
+        id: "large-sambal-long-beans",
+        label: "Large serving",
+        delta: [
+          60,
+          120
+        ]
+      }
+    ]
+  },
+  {
+    id: "achar-side",
+    name: "Achar",
+    chineseName: "阿杂",
+    confidence: "Medium",
+    baseRange: [
+      40,
+      140
+    ],
+    macroRange: {
+      protein: [
+        1,
+        4
+      ],
+      carbs: [
+        5,
+        18
+      ],
+      fat: [
+        2,
+        9
+      ]
+    },
+    note: "Pickled vegetables with chilli, vinegar, sugar, and sometimes peanuts. Usually a small side.",
+    aliases: [
+      "achar",
+      "nyonya achar",
+      "acar",
+      "pickled vegetables",
+      "阿杂",
+      "腌菜"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "small-achar",
+        label: "Small side",
+        delta: [
+          -45,
+          -20
+        ]
+      },
+      {
+        id: "peanuts-achar",
+        label: "With peanuts",
+        delta: [
+          35,
+          70
+        ]
+      },
+      {
+        id: "large-achar",
+        label: "Large side",
+        delta: [
+          45,
+          90
+        ]
+      }
+    ]
+  },
+  {
+    id: "bean-sprouts-side",
+    name: "Bean Sprouts Side",
+    chineseName: "豆芽",
+    confidence: "High",
+    baseRange: [
+      40,
+      120
+    ],
+    macroRange: {
+      protein: [
+        2,
+        6
+      ],
+      carbs: [
+        4,
+        12
+      ],
+      fat: [
+        1,
+        8
+      ]
+    },
+    note: "Blanched or lightly stir-fried taugeh served with chicken rice, hor fun, or zi char.",
+    aliases: [
+      "bean sprouts",
+      "beansprouts",
+      "taugeh",
+      "豆芽",
+      "芽菜"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "plain-bean-sprouts",
+        label: "Plain/blanched",
+        delta: [
+          -25,
+          -10
+        ]
+      },
+      {
+        id: "oily-bean-sprouts",
+        label: "Oil dressing",
+        delta: [
+          25,
+          60
+        ]
+      },
+      {
+        id: "large-bean-sprouts",
+        label: "Large side",
+        delta: [
+          40,
+          80
+        ]
+      }
+    ]
+  },
+  {
+    id: "plain-rice-addon",
+    name: "Plain Rice Add-on",
+    chineseName: "白饭",
+    confidence: "High",
+    baseRange: [
+      180,
+      320
+    ],
+    macroRange: {
+      protein: [
+        3,
+        7
+      ],
+      carbs: [
+        38,
+        70
+      ],
+      fat: [
+        0,
+        2
+      ]
+    },
+    note: "Extra white rice for shared dishes, economy rice, or zi char. Use lower end for half rice.",
+    aliases: [
+      "plain rice",
+      "white rice",
+      "extra rice",
+      "nasi putih",
+      "白饭",
+      "白飯",
+      "加饭"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "half-rice-addon",
+        label: "Half rice",
+        delta: [
+          -120,
+          -70
+        ]
+      },
+      {
+        id: "full-rice-addon",
+        label: "Full rice",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "large-rice-addon",
+        label: "Large rice",
+        delta: [
+          70,
+          130
+        ]
+      }
+    ]
+  },
+  {
+    id: "fried-egg-addon",
+    name: "Fried Egg Add-on",
+    chineseName: "煎蛋",
+    confidence: "High",
+    baseRange: [
+      90,
+      180
+    ],
+    macroRange: {
+      protein: [
+        6,
+        10
+      ],
+      carbs: [
+        0,
+        2
+      ],
+      fat: [
+        7,
+        15
+      ]
+    },
+    note: "Common add-on for nasi lemak, fried rice, mee goreng, and cai png. Oil level decides the range.",
+    aliases: [
+      "fried egg",
+      "sunny side up",
+      "egg add on",
+      "telur mata",
+      "煎蛋",
+      "荷包蛋"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "one-fried-egg",
+        label: "1 egg",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "less-oil-fried-egg",
+        label: "Less oil",
+        delta: [
+          -45,
+          -20
+        ]
+      },
+      {
+        id: "two-fried-eggs",
+        label: "2 eggs",
+        delta: [
+          90,
+          180
+        ]
+      }
+    ]
+  },
+  {
+    id: "seaweed-soup-side",
+    name: "Seaweed Soup",
+    chineseName: "紫菜汤",
+    confidence: "Medium",
+    baseRange: [
+      50,
+      180
+    ],
+    macroRange: {
+      protein: [
+        3,
+        12
+      ],
+      carbs: [
+        3,
+        14
+      ],
+      fat: [
+        1,
+        10
+      ]
+    },
+    note: "Light soup often served with minced pork, egg, tofu, or fishball. Higher when it includes meatballs or egg.",
+    aliases: [
+      "seaweed soup",
+      "zi cai tang",
+      "seaweed egg soup",
+      "seaweed minced pork soup",
+      "紫菜汤",
+      "紫菜蛋花汤"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "plain-seaweed-soup",
+        label: "Plain soup",
+        delta: [
+          -40,
+          -15
+        ]
+      },
+      {
+        id: "egg-seaweed-soup",
+        label: "With egg",
+        delta: [
+          45,
+          80
+        ]
+      },
+      {
+        id: "meatball-seaweed-soup",
+        label: "With meatballs",
+        delta: [
+          70,
+          140
+        ]
+      }
+    ]
+  },
+  {
+    id: "ang-ku-kueh",
+    name: "Ang Ku Kueh",
+    chineseName: "红龟粿",
+    confidence: "Medium",
+    baseRange: [
+      140,
+      260
+    ],
+    macroRange: {
+      protein: [
+        3,
+        7
+      ],
+      carbs: [
+        25,
+        45
+      ],
+      fat: [
+        3,
+        9
+      ]
+    },
+    note: "Small glutinous rice cake with sweet mung bean, peanut, or red bean filling. Size and filling are the main levers.",
+    aliases: [
+      "ang ku kueh",
+      "ang ku kuih",
+      "red tortoise cake",
+      "红龟粿",
+      "红龟糕"
+    ],
+    defaultModifierIds: [
+      "one-ang-ku-kueh"
+    ],
+    modifiers: [
+      {
+        id: "one-ang-ku-kueh",
+        label: "1 piece",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "peanut-ang-ku-kueh",
+        label: "Peanut filling",
+        delta: [
+          30,
+          70
+        ]
+      },
+      {
+        id: "large-ang-ku-kueh",
+        label: "Large piece",
+        delta: [
+          60,
+          120
+        ]
+      }
+    ]
+  },
+  {
+    id: "ondeh-ondeh",
+    name: "Ondeh Ondeh",
+    chineseName: "椰丝椰糖球",
+    confidence: "Medium",
+    baseRange: [
+      120,
+      260
+    ],
+    macroRange: {
+      protein: [
+        2,
+        5
+      ],
+      carbs: [
+        22,
+        45
+      ],
+      fat: [
+        3,
+        10
+      ]
+    },
+    note: "Glutinous rice balls filled with gula melaka and coated in grated coconut. Count pieces when possible.",
+    aliases: [
+      "ondeh ondeh",
+      "onde-onde",
+      "gula melaka balls",
+      "椰糖糯米球",
+      "椰丝球"
+    ],
+    defaultModifierIds: [
+      "three-ondeh-ondeh"
+    ],
+    modifiers: [
+      {
+        id: "two-ondeh-ondeh",
+        label: "2 pieces",
+        delta: [
+          -70,
+          -35
+        ]
+      },
+      {
+        id: "three-ondeh-ondeh",
+        label: "3 pieces",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "five-ondeh-ondeh",
+        label: "5 pieces",
+        delta: [
+          80,
+          170
+        ]
+      },
+      {
+        id: "extra-coconut-ondeh-ondeh",
+        label: "Extra coconut",
+        delta: [
+          25,
+          60
+        ]
+      }
+    ]
+  },
+  {
+    id: "putu-piring",
+    name: "Putu Piring",
+    chineseName: "椰糖米糕",
+    confidence: "Medium",
+    baseRange: [
+      160,
+      340
+    ],
+    macroRange: {
+      protein: [
+        2,
+        6
+      ],
+      carbs: [
+        35,
+        70
+      ],
+      fat: [
+        2,
+        9
+      ]
+    },
+    note: "Steamed rice flour cake with gula melaka and grated coconut. Usually logged by pieces.",
+    aliases: [
+      "putu piring",
+      "putu piring gula melaka",
+      "tu tu kueh gula melaka",
+      "椰糖米糕",
+      "椰糖嘟嘟糕"
+    ],
+    defaultModifierIds: [
+      "two-putu-piring"
+    ],
+    modifiers: [
+      {
+        id: "one-putu-piring",
+        label: "1 piece",
+        delta: [
+          -90,
+          -45
+        ]
+      },
+      {
+        id: "two-putu-piring",
+        label: "2 pieces",
+        delta: [
+          0,
+          0
+        ]
+      },
+      {
+        id: "four-putu-piring",
+        label: "4 pieces",
+        delta: [
+          160,
+          340
+        ]
+      },
+      {
+        id: "extra-coconut-putu-piring",
+        label: "Extra coconut",
+        delta: [
+          25,
+          60
+        ]
+      }
+    ]
+  },
+  {
+    id: "milo-peng",
+    name: "Milo Peng",
+    chineseName: "冰美禄",
+    confidence: "High",
+    baseRange: [
+      160,
+      380
+    ],
+    macroRange: {
+      protein: [
+        5,
+        12
+      ],
+      carbs: [
+        28,
+        70
+      ],
+      fat: [
+        4,
+        14
+      ]
+    },
+    note: "Iced Milo from kopitiam or hawker drink stalls. Dinosaur topping adds a noticeable calorie bump.",
+    aliases: [
+      "milo peng",
+      "iced milo",
+      "milo ice",
+      "milo bing",
+      "冰Milo",
+      "冰美禄"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "siew-dai-milo-peng",
+        label: "Less sugar",
+        delta: [
+          -60,
+          -30
+        ]
+      },
+      {
+        id: "kosong-milo-peng",
+        label: "No sugar",
+        delta: [
+          -90,
+          -45
+        ]
+      },
+      {
+        id: "milo-dinosaur",
+        label: "Milo dinosaur",
+        delta: [
+          90,
+          170
+        ]
+      },
+      {
+        id: "large-milo-peng",
+        label: "Large cup",
+        delta: [
+          60,
+          120
+        ]
+      }
+    ]
+  },
+  {
+    id: "teh-peng",
+    name: "Teh Peng",
+    chineseName: "冰奶茶",
+    confidence: "High",
+    baseRange: [
+      90,
+      260
+    ],
+    macroRange: {
+      protein: [
+        2,
+        7
+      ],
+      carbs: [
+        15,
+        50
+      ],
+      fat: [
+        2,
+        10
+      ]
+    },
+    note: "Iced pulled milk tea. Sugar and condensed milk decide most of the range.",
+    aliases: [
+      "teh peng",
+      "iced teh",
+      "teh ice",
+      "teh bing",
+      "冰Teh",
+      "冰奶茶"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "siew-dai-teh-peng",
+        label: "Less sugar",
+        delta: [
+          -55,
+          -25
+        ]
+      },
+      {
+        id: "kosong-teh-peng",
+        label: "No sugar",
+        delta: [
+          -85,
+          -40
+        ]
+      },
+      {
+        id: "ga-dai-teh-peng",
+        label: "Extra sweet",
+        delta: [
+          45,
+          90
+        ]
+      },
+      {
+        id: "large-teh-peng",
+        label: "Large cup",
+        delta: [
+          50,
+          100
+        ]
+      }
+    ]
+  },
+  {
+    id: "barley-water",
+    name: "Barley Water",
+    chineseName: "薏米水",
+    confidence: "Medium",
+    baseRange: [
+      50,
+      190
+    ],
+    macroRange: {
+      protein: [
+        1,
+        4
+      ],
+      carbs: [
+        12,
+        45
+      ],
+      fat: [
+        0,
+        2
+      ]
+    },
+    note: "Hawker barley drink, sometimes with ginkgo or beancurd skin. Sweetness varies widely.",
+    aliases: [
+      "barley water",
+      "barley drink",
+      "薏米水",
+      "大麦水",
+      "白果薏米水"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "siew-dai-barley",
+        label: "Less sugar",
+        delta: [
+          -60,
+          -30
+        ]
+      },
+      {
+        id: "kosong-barley",
+        label: "No sugar",
+        delta: [
+          -85,
+          -45
+        ]
+      },
+      {
+        id: "add-ginkgo-barley",
+        label: "Add ginkgo",
+        delta: [
+          25,
+          60
+        ]
+      },
+      {
+        id: "large-barley",
+        label: "Large cup",
+        delta: [
+          45,
+          90
+        ]
+      }
+    ]
+  },
+  {
+    id: "bandung",
+    name: "Bandung",
+    chineseName: "玫瑰奶",
+    confidence: "Medium",
+    baseRange: [
+      120,
+      320
+    ],
+    macroRange: {
+      protein: [
+        3,
+        9
+      ],
+      carbs: [
+        22,
+        60
+      ],
+      fat: [
+        3,
+        12
+      ]
+    },
+    note: "Rose syrup milk drink. Condensed milk and syrup make stall versions quite variable.",
+    aliases: [
+      "bandung",
+      "air bandung",
+      "rose milk",
+      "玫瑰奶",
+      "玫瑰露奶",
+      "玫瑰糖水奶"
+    ],
+    defaultModifierIds: [],
+    modifiers: [
+      {
+        id: "siew-dai-bandung",
+        label: "Less sugar",
+        delta: [
+          -70,
+          -35
+        ]
+      },
+      {
+        id: "ga-dai-bandung",
+        label: "Extra sweet",
+        delta: [
+          50,
+          100
+        ]
+      },
+      {
+        id: "large-bandung",
+        label: "Large cup",
+        delta: [
+          70,
+          140
+        ]
+      }
+    ]
   }
 
 ];

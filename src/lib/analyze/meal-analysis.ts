@@ -322,6 +322,77 @@ function getInputSource(input: MealAnalysisInput) {
     .trim();
 }
 
+function isSpecificEmbeddedPhrase(phrase: string) {
+  if (/^[\u4e00-\u9fff]+$/.test(phrase)) {
+    return phrase.length >= 2;
+  }
+
+  return phrase.includes(" ") || phrase.length >= 5;
+}
+
+function getCandidatePhrases(candidate: CandidateMeal) {
+  return Array.from(
+    new Set(
+      [candidate.name, candidate.chineseName, ...candidate.aliases]
+        .map(normalizeText)
+        .filter((phrase) =>
+          phrase.length > 0 && isSpecificEmbeddedPhrase(phrase),
+        ),
+    ),
+  );
+}
+
+function splitEmbeddedMealSource(source: string) {
+  const normalizedSource = normalizeText(source);
+  const matches = candidateMeals.flatMap((candidate) =>
+    getCandidatePhrases(candidate).flatMap((phrase) => {
+      const index = normalizedSource.indexOf(phrase);
+
+      return index >= 0
+        ? [
+            {
+              candidateId: candidate.id,
+              index,
+              phrase,
+            },
+          ]
+        : [];
+    }),
+  );
+  const bestByCandidate = [
+    ...matches
+      .sort((left, right) =>
+        left.index === right.index
+          ? right.phrase.length - left.phrase.length
+          : left.index - right.index,
+      )
+      .reduce((map, match) => {
+        const current = map.get(match.candidateId);
+
+        if (!current || match.phrase.length > current.phrase.length) {
+          map.set(match.candidateId, match);
+        }
+
+        return map;
+      }, new Map<string, (typeof matches)[number]>())
+      .values(),
+  ].sort((left, right) => left.index - right.index);
+
+  if (bestByCandidate.length <= 1) {
+    return [];
+  }
+
+  return bestByCandidate
+    .map((match, index) => {
+      const nextMatch = bestByCandidate[index + 1];
+
+      return normalizedSource
+        .slice(match.index, nextMatch?.index ?? normalizedSource.length)
+        .trim();
+    })
+    .filter((part) => part.length > 0);
+}
+
 function splitMealSource(source: string) {
   const cleaned = source
     .replace(/\band\b/gi, "、")
@@ -330,7 +401,13 @@ function splitMealSource(source: string) {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
 
-  return cleaned.length > 1 ? cleaned : [source.trim()].filter(Boolean);
+  if (cleaned.length > 1) {
+    return cleaned;
+  }
+
+  const embeddedParts = splitEmbeddedMealSource(source);
+
+  return embeddedParts.length > 1 ? embeddedParts : [source.trim()].filter(Boolean);
 }
 
 function includesAny(source: string, hints: string[]) {

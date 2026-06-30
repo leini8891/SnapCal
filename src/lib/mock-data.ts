@@ -367,6 +367,14 @@ export const quickStartExamples = [
     label: "Tau huay",
     query: "unsweetened tau huay grass jelly soy milk",
   },
+  {
+    label: "Scallop CCF",
+    query: "scallop chee cheong fun extra sauce half portion",
+  },
+  {
+    label: "Zi char table",
+    query: "chilli crab, cereal prawn, claypot tofu, plain rice, milo peng shared",
+  },
 ];
 
 export const frontendRails = [

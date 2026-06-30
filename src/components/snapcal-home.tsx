@@ -46,6 +46,8 @@ type InputMode = "camera" | "gallery" | "text";
 type ServingMode = "solo" | "shared";
 type DraftMealItem = MealAnalysisItem;
 
+const PORTION_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
+
 function confidenceTone(confidence: MealConfidence | null | undefined) {
   if (confidence === "High") {
     return "bg-[var(--green-tint)] text-[#2e8049]";
@@ -81,6 +83,33 @@ function clampShareInput(value: number) {
   return Math.min(12, Math.max(1, Math.round(value)));
 }
 
+function clampPortionInput(value: number) {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.min(3, Math.max(0.15, Math.round(value * 4) / 4));
+}
+
+function formatPortionLabel(portion: number, isZh: boolean) {
+  if (portion === 0.25) {
+    return isZh ? "1/4 份" : "1/4 serving";
+  }
+
+  if (portion === 0.5) {
+    return isZh ? "半份" : "1/2 serving";
+  }
+
+  if (portion === 0.75) {
+    return isZh ? "3/4 份" : "3/4 serving";
+  }
+
+  if (portion === 1) {
+    return isZh ? "一份" : "1 serving";
+  }
+
+  return isZh ? `${portion} 份` : `${portion} servings`;
+}
 function confidenceLabel(
   confidence: MealConfidence,
   language: SnapCalLanguage,
@@ -348,6 +377,9 @@ export default function SnapCalHome() {
           },
         ];
       });
+  const activeDraftItemEstimate =
+    draftItemEstimates[activeItemIndex] ?? draftItemEstimates[0];
+  const activePortion = activeDraftItemEstimate?.portion ?? 1;
   const draftRange = draftItemEstimates.reduce<Range>(
     (total, item) => addRanges(total, item.kcalRange),
     [0, 0],
@@ -806,6 +838,44 @@ export default function SnapCalHome() {
     setAnalysisConfidence(item.confidence ?? itemCandidate.confidence);
   }
 
+  function updateActiveItemPortion(nextPortion: number) {
+    const sanitizedPortion = clampPortionInput(nextPortion);
+
+    setDuplicateConfirmSignature(null);
+    setDraftItems((items) => {
+      if (items.length === 0) {
+        return [
+          {
+            candidateId: selectedCandidate.id,
+            modifierIds: selectedModifierIds,
+            portion: sanitizedPortion,
+            confidence: currentConfidence,
+          },
+        ];
+      }
+
+      return items.map((item, index) =>
+        index === activeItemIndex
+          ? {
+              ...item,
+              portion: sanitizedPortion,
+            }
+          : item,
+      );
+    });
+    setStatusMessage(
+      isZh
+        ? "已把 " +
+          selectedCandidate.name +
+          " 调整为 " +
+          formatPortionLabel(sanitizedPortion, true) +
+          "。"
+        : selectedCandidate.name +
+          " set to " +
+          formatPortionLabel(sanitizedPortion, false) +
+          ".",
+    );
+  }
   function toggleModifier(modifierId: string) {
     setDuplicateConfirmSignature(null);
     setSelectedModifierIds((current) =>
@@ -1021,8 +1091,8 @@ export default function SnapCalHome() {
               </h1>
               <p className="mt-2 text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {isZh
-                  ? "拍照或输入菜名，先拿到热量区间，再按份量、米饭和酱料快速修正。"
-                  : "Use a photo or dish name, get a calorie range, then tune portion, rice, and sauce quickly."}
+                  ? "拍一张或多张照片，也可以输入菜名；先拿到热量区间，再按份量、米饭和酱料快速修正。"
+                  : "Use one or more photos, or type a dish name; get a calorie range, then tune portion, rice, and sauce quickly."}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 lg:min-w-[460px]">
@@ -1294,7 +1364,7 @@ export default function SnapCalHome() {
                       </div>
                     ) : null}
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
                       className="rounded-[14px] bg-[var(--coral)] px-4 py-3 text-sm font-bold text-white shadow-[var(--shadow-pop)] transition hover:translate-y-[-1px]"
@@ -1308,15 +1378,22 @@ export default function SnapCalHome() {
                           ? "选择照片"
                           : "Choose photo"}
                     </button>
-                    {inputMode === "gallery" ? (
-                      <button
-                        type="button"
-                        className="rounded-[14px] border border-[var(--line)] bg-white px-4 py-3 text-sm font-bold text-[var(--foreground)] transition hover:border-[var(--coral)]"
-                        onClick={() => galleryInputRef.current?.click()}
-                      >
-                        {isZh ? "一次选多张" : "Choose multiple"}
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      className="rounded-[14px] border border-[var(--line)] bg-white px-4 py-3 text-sm font-bold text-[var(--foreground)] transition hover:border-[var(--coral)]"
+                      onClick={() => {
+                        setInputMode("gallery");
+                        galleryInputRef.current?.click();
+                      }}
+                    >
+                      {isZh
+                        ? inputMode === "gallery"
+                          ? "一次选多张"
+                          : "相册多选"
+                        : inputMode === "gallery"
+                          ? "Choose multiple"
+                          : "Multi-select"}
+                    </button>
                     {(hasDraft || previewUrl) ? (
                       <button
                         type="button"
@@ -1573,6 +1650,63 @@ export default function SnapCalHome() {
                   />
                 </div>
 
+                <div className="rounded-[18px] border border-[var(--line)] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--muted)]">
+                        {isZh ? "这项份量" : "Item portion"}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                        {draftItemEstimates.length > 1
+                          ? isZh
+                            ? "先在本餐项目里点一道菜，再调你实际吃到的份量。"
+                            : "Select an item above, then set the amount you actually ate."
+                          : isZh
+                            ? "按你实际吃到的份量调整，适合一桌菜只夹了几口的情况。"
+                            : "Set what you actually ate, including a few bites from a shared plate."}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold text-[var(--foreground)]">
+                      {formatPortionLabel(activePortion, isZh)}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                    {PORTION_PRESETS.map((portion) => {
+                      const active = Math.abs(activePortion - portion) < 0.01;
+
+                      return (
+                        <button
+                          key={portion}
+                          type="button"
+                          onClick={() => updateActiveItemPortion(portion)}
+                          className={`rounded-[12px] border px-2 py-2 text-sm font-bold transition ${
+                            active
+                              ? "border-[var(--coral)] bg-[var(--coral-tint)] text-[var(--coral-ink)]"
+                              : "border-[var(--line)] bg-[var(--surface-2)] text-[var(--foreground)] hover:border-[var(--coral)]"
+                          }`}
+                        >
+                          {formatPortionLabel(portion, isZh)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateActiveItemPortion(activePortion - 0.25)}
+                      className="rounded-[12px] border border-[var(--line)] bg-white px-3 py-2 text-sm font-bold text-[var(--foreground)] transition hover:border-[var(--coral)]"
+                    >
+                      {isZh ? "少一点" : "Less"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateActiveItemPortion(activePortion + 0.25)}
+                      className="rounded-[12px] border border-[var(--line)] bg-white px-3 py-2 text-sm font-bold text-[var(--foreground)] transition hover:border-[var(--coral)]"
+                    >
+                      {isZh ? "多一点" : "More"}
+                    </button>
+                  </div>
+                </div>
                 <div className="rounded-[18px] border border-[var(--line)] bg-white p-4">
                   <p className="font-bold text-[var(--foreground)]">
                     {guidance.title}

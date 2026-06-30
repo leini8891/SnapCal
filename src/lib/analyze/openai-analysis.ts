@@ -14,6 +14,12 @@ type OpenAIDecision = {
   modifierIds: string[];
   confidence: "High" | "Medium" | "Low";
   reasoning: string;
+  items: Array<{
+    candidateId: string;
+    modifierIds: string[];
+    portion: number;
+    confidence: "High" | "Medium" | "Low";
+  }>;
 };
 
 const ANALYSIS_SCHEMA = {
@@ -37,8 +43,39 @@ const ANALYSIS_SCHEMA = {
     reasoning: {
       type: "string",
     },
+    items: {
+      type: "array",
+      minItems: 1,
+      maxItems: 8,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          candidateId: {
+            type: "string",
+            enum: candidateMeals.map((candidate) => candidate.id),
+          },
+          modifierIds: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          portion: {
+            type: "number",
+            minimum: 0.15,
+            maximum: 3,
+          },
+          confidence: {
+            type: "string",
+            enum: ["High", "Medium", "Low"],
+          },
+        },
+        required: ["candidateId", "modifierIds", "portion", "confidence"],
+      },
+    },
   },
-  required: ["candidateId", "modifierIds", "confidence", "reasoning"],
+  required: ["candidateId", "modifierIds", "confidence", "reasoning", "items"],
 } as const;
 
 let cachedClient: OpenAI | null | undefined;
@@ -89,7 +126,24 @@ function isOpenAIDecision(input: unknown): input is OpenAIDecision {
     (candidate.confidence === "High" ||
       candidate.confidence === "Medium" ||
       candidate.confidence === "Low") &&
-    typeof candidate.reasoning === "string"
+    typeof candidate.reasoning === "string" &&
+    Array.isArray(candidate.items) &&
+    candidate.items.every((item) => {
+      if (!item || typeof item !== "object") {
+        return false;
+      }
+
+      const mealItem = item as Record<string, unknown>;
+      return (
+        typeof mealItem.candidateId === "string" &&
+        Array.isArray(mealItem.modifierIds) &&
+        mealItem.modifierIds.every((modifierId) => typeof modifierId === "string") &&
+        typeof mealItem.portion === "number" &&
+        (mealItem.confidence === "High" ||
+          mealItem.confidence === "Medium" ||
+          mealItem.confidence === "Low")
+      );
+    })
   );
 }
 
@@ -106,7 +160,9 @@ export async function analyzeMealWithOpenAI(
     return null;
   }
 
-  const source = input.query?.trim() || input.fileName?.trim() || "Unknown meal";
+  const source = [input.query, input.fileName, ...(input.fileNames ?? [])]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(" ") || "Unknown meal";
   const rankedCandidates = source
     ? rankCandidateMatches(source).map((entry) => entry.candidate)
     : candidateMeals;
@@ -114,7 +170,11 @@ export async function analyzeMealWithOpenAI(
     `User mode: ${input.mode}`,
     `User hint: ${source}`,
     input.fileName ? `Uploaded filename: ${input.fileName}` : null,
-    "Choose the closest Singapore hawker dish from the catalog.",
+    input.fileNames?.length ? `Uploaded filenames: ${input.fileNames.join(", ")}` : null,
+    "Identify every visible dish or drink in this meal, across all images.",
+    "Map each item to the closest Singapore hawker/local catalog dish. Return one item per distinct dish or drink.",
+    "If the meal is one plate with several components, include the main components that materially affect calories.",
+    "Use portion around 1 for a normal serving; use smaller portions such as 0.25 or 0.5 for shared dishes or small sides.",
     "Only return modifierIds that exist on the chosen dish.",
     "Prefer conservative edits when the image is ambiguous.",
     `Catalog: ${JSON.stringify(buildCatalogSummary())}`,
@@ -142,15 +202,13 @@ export async function analyzeMealWithOpenAI(
             type: "input_text",
             text: userText,
           },
-          ...(input.imageDataUrl
-            ? [
-                {
-                  type: "input_image" as const,
-                  image_url: input.imageDataUrl,
-                  detail: "auto" as const,
-                },
-              ]
-            : []),
+          ...((input.imageDataUrls?.length ? input.imageDataUrls : input.imageDataUrl ? [input.imageDataUrl] : [])
+            .slice(0, 6)
+            .map((imageDataUrl) => ({
+              type: "input_image" as const,
+              image_url: imageDataUrl,
+              detail: "auto" as const,
+            }))),
         ],
       },
     ],
@@ -188,6 +246,12 @@ export async function analyzeMealWithOpenAI(
     analysisLabel: `OpenAI analysis selected ${selectedCandidate.name}. ${parsed.reasoning}`,
     analysisConfidence: parsed.confidence,
     candidates: [selectedCandidate, ...rankedCandidates],
+    items: parsed.items.map((item) => ({
+      candidateId: item.candidateId,
+      modifierIds: item.modifierIds,
+      portion: item.portion,
+      confidence: item.confidence,
+    })),
     selectedCandidateId: selectedCandidate.id,
     selectedModifierIds: parsed.modifierIds,
     provider: "openai",

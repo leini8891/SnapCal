@@ -13,6 +13,12 @@ type GlmDecision = {
   modifierIds: string[];
   confidence: "High" | "Medium" | "Low" | number;
   reasoning: string;
+  items?: Array<{
+    candidateId?: unknown;
+    modifierIds?: unknown;
+    portion?: unknown;
+    confidence?: unknown;
+  }>;
 };
 
 type GlmChatCompletionResponse = {
@@ -151,7 +157,9 @@ export async function analyzeMealWithGlm(
     return null;
   }
 
-  const source = input.query?.trim() || input.fileName?.trim() || "Unknown meal";
+  const source = [input.query, input.fileName, ...(input.fileNames ?? [])]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(" ") || "Unknown meal";
   const rankedCandidates = source
     ? rankCandidateMatches(source).map((entry) => entry.candidate)
     : candidateMeals;
@@ -159,10 +167,13 @@ export async function analyzeMealWithGlm(
     `User mode: ${input.mode}`,
     `User hint: ${source}`,
     input.fileName ? `Uploaded filename: ${input.fileName}` : null,
-    "Choose the closest Singapore hawker dish from the catalog.",
+    input.fileNames?.length ? `Uploaded filenames: ${input.fileNames.join(", ")}` : null,
+    "Identify every visible dish or drink in this meal, across all images.",
+    "Map each item to the closest Singapore hawker/local catalog dish. Return one item per distinct dish or drink.",
+    "Use portion around 1 for a normal serving; use smaller portions such as 0.25 or 0.5 for shared dishes or small sides.",
     "Only return modifierIds that exist on the chosen dish.",
     "Prefer conservative edits when the image is ambiguous.",
-    "Return a JSON object with exactly these keys: candidateId, modifierIds, confidence, reasoning.",
+    "Return a JSON object with exactly these keys: candidateId, modifierIds, confidence, reasoning, items. items must be an array of {candidateId, modifierIds, portion, confidence}.",
     `Catalog: ${JSON.stringify(buildCatalogSummary())}`,
   ]
     .filter(Boolean)
@@ -186,16 +197,14 @@ export async function analyzeMealWithGlm(
       {
         role: "user",
         content: [
-          ...(input.imageDataUrl
-            ? [
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: input.imageDataUrl,
-                  },
-                },
-              ]
-            : []),
+          ...((input.imageDataUrls?.length ? input.imageDataUrls : input.imageDataUrl ? [input.imageDataUrl] : [])
+            .slice(0, 6)
+            .map((imageDataUrl) => ({
+              type: "image_url" as const,
+              image_url: {
+                url: imageDataUrl,
+              },
+            }))),
           {
             type: "text",
             text: userText,
@@ -251,6 +260,34 @@ export async function analyzeMealWithGlm(
     analysisLabel: `GLM analysis selected ${selectedCandidate.name}. ${parsed.reasoning}`,
     analysisConfidence: normalizeGlmConfidence(parsed.confidence),
     candidates: [selectedCandidate, ...rankedCandidates],
+    items: Array.isArray(parsed.items)
+      ? parsed.items.flatMap((item) => {
+          if (!item || typeof item !== "object") {
+            return [];
+          }
+
+          const candidateId = typeof item.candidateId === "string" ? item.candidateId : null;
+          const confidence =
+            item.confidence === "High" || item.confidence === "Medium" || item.confidence === "Low"
+              ? item.confidence
+              : null;
+
+          if (!candidateId) {
+            return [];
+          }
+
+          return [
+            {
+              candidateId,
+              modifierIds: Array.isArray(item.modifierIds)
+                ? item.modifierIds.filter((modifierId): modifierId is string => typeof modifierId === "string")
+                : [],
+              portion: typeof item.portion === "number" ? item.portion : 1,
+              confidence,
+            },
+          ];
+        })
+      : undefined,
     selectedCandidateId: selectedCandidate.id,
     selectedModifierIds: parsed.modifierIds,
     provider: "glm",

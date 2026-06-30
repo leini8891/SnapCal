@@ -8,7 +8,16 @@ export type MealAnalysisInput = {
   mode: AnalyzeMealMode;
   query?: string;
   fileName?: string;
+  fileNames?: string[];
   imageDataUrl?: string;
+  imageDataUrls?: string[];
+};
+
+export type MealAnalysisItem = {
+  candidateId: string;
+  modifierIds: string[];
+  portion: number;
+  confidence: MealConfidence | null;
 };
 
 export type MealAnalysisResult = {
@@ -17,6 +26,7 @@ export type MealAnalysisResult = {
   candidates: CandidateMeal[];
   selectedCandidateId: string;
   selectedModifierIds: string[];
+  items: MealAnalysisItem[];
   provider: MealAnalysisProvider;
 };
 
@@ -146,6 +156,20 @@ const MODIFIER_HINTS: Record<string, string[]> = {
   "less-gravy-pig-trotter": ["less gravy", "less sauce"],
   "leaner-pork-pig-trotter": ["lean", "leaner", "less fat"],
   "extra-veg-pig-trotter": ["extra veg", "extra vegetables"],
+  "scallop-ccf": ["scallop", "扇贝", "帶子", "带子"],
+  "prawn-ccf": ["prawn", "shrimp", "虾", "蝦"],
+  "char-siew-ccf": ["char siew", "叉烧", "叉燒"],
+  "extra-sauce-ccf": ["extra sauce", "more sauce", "酱多", "多酱"],
+  "half-portion-ccf": ["half", "half portion", "半份"],
+  "small-lor-mai-gai": ["small", "small piece", "小份"],
+  "half-lor-mai-gai": ["half", "half portion", "半份"],
+  "black-bean-ribs": ["black bean", "豉汁", "豆豉"],
+  "fatty-ribs": ["fatty", "肥", "肥肉"],
+  "small-ribs": ["small", "small plate", "小份", "小碟"],
+  "shared-ribs": ["shared", "share", "分食", "一起吃"],
+  "chili-oil-cucumber": ["chili oil", "辣油", "红油", "麻辣"],
+  "sesame-cucumber": ["sesame", "芝麻", "麻酱"],
+  "large-cucumber": ["large", "large serving", "一整根", "大份"],
   "half-rice": ["half rice", "less rice", "small rice"],
   "skin-removed": ["no skin", "skinless", "remove skin"],
   steamed: ["steamed"],
@@ -287,6 +311,28 @@ function scoreCandidate(candidate: CandidateMeal, source: string) {
   return score;
 }
 
+function getInputSource(input: MealAnalysisInput) {
+  return [
+    input.query,
+    input.fileName,
+    ...(input.fileNames ?? []),
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(" ")
+    .trim();
+}
+
+function splitMealSource(source: string) {
+  const cleaned = source
+    .replace(/\band\b/gi, "、")
+    .replace(/[+,&，、;；/|\n]+/g, "、")
+    .split("、")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+  return cleaned.length > 1 ? cleaned : [source.trim()].filter(Boolean);
+}
+
 function includesAny(source: string, hints: string[]) {
   return hints.some((hint) => source.includes(normalizeText(hint)));
 }
@@ -319,7 +365,7 @@ export function rankCandidateMatches(source: string) {
 
 function buildAnalysisLabel(input: MealAnalysisInput, matched: boolean) {
   const dishHint = input.query?.trim();
-  const source = dishHint || input.fileName?.trim();
+  const source = dishHint || getInputSource(input);
   const genericCameraFileName = isGenericCameraFileName(input.fileName);
   const hasUpload = input.mode !== "text";
   const hasDishHint = Boolean(dishHint);
@@ -406,6 +452,7 @@ export function buildMealAnalysisResult({
   analysisLabel,
   analysisConfidence = null,
   candidates,
+  items,
   selectedCandidateId,
   selectedModifierIds,
   provider,
@@ -413,6 +460,7 @@ export function buildMealAnalysisResult({
   analysisLabel: string;
   analysisConfidence?: MealConfidence | null;
   candidates: CandidateMeal[];
+  items?: MealAnalysisItem[];
   selectedCandidateId: string;
   selectedModifierIds: string[];
   provider: MealAnalysisProvider;
@@ -434,6 +482,44 @@ export function buildMealAnalysisResult({
   const sanitizedModifierIds = selectedModifierIds.filter((modifierId) =>
     validModifierIds.has(modifierId),
   );
+  const sanitizedItems = (items ?? [])
+    .map((item) => {
+      const itemCandidate = fallbackCandidates.find(
+        (candidate) => candidate.id === item.candidateId,
+      ) ?? candidateMeals.find((candidate) => candidate.id === item.candidateId);
+
+      if (!itemCandidate) {
+        return null;
+      }
+
+      const itemModifierIds = item.modifierIds.filter((modifierId) =>
+        itemCandidate.modifiers.some((modifier) => modifier.id === modifierId),
+      );
+
+      return {
+        candidateId: itemCandidate.id,
+        modifierIds:
+          itemModifierIds.length > 0
+            ? itemModifierIds
+            : itemCandidate.defaultModifierIds,
+        portion: Math.min(3, Math.max(0.15, item.portion || 1)),
+        confidence: item.confidence,
+      } satisfies MealAnalysisItem;
+    })
+    .filter((item): item is MealAnalysisItem => Boolean(item));
+  const fallbackItems = sanitizedItems.length > 0
+    ? sanitizedItems
+    : [
+        {
+          candidateId: selectedCandidate.id,
+          modifierIds:
+            sanitizedModifierIds.length > 0
+              ? sanitizedModifierIds
+              : selectedCandidate.defaultModifierIds,
+          portion: 1,
+          confidence: analysisConfidence,
+        },
+      ];
 
   return {
     analysisLabel,
@@ -444,6 +530,7 @@ export function buildMealAnalysisResult({
       sanitizedModifierIds.length > 0
         ? sanitizedModifierIds
         : selectedCandidate.defaultModifierIds,
+    items: fallbackItems,
     provider,
   } satisfies MealAnalysisResult;
 }
@@ -451,11 +538,38 @@ export function buildMealAnalysisResult({
 export function analyzeMealInput(
   input: MealAnalysisInput,
 ): MealAnalysisResult {
-  const source = input.query?.trim() || input.fileName?.trim() || "";
+  const source = getInputSource(input);
   const rankedCandidates = source ? rankCandidateMatches(source) : [];
   const matched = rankedCandidates.some((entry) => entry.score > 0);
+  const sourceParts = splitMealSource(source);
+  const matchedItems = sourceParts.flatMap((part) => {
+    const partMatches = rankCandidateMatches(part).filter((entry) => entry.score > 0);
+    const topMatch = partMatches[0];
+
+    if (!topMatch) {
+      return [];
+    }
+
+    return [
+      {
+        candidateId: topMatch.candidate.id,
+        modifierIds: inferModifierIds(topMatch.candidate, part),
+        portion: 1,
+        confidence: inferHeuristicConfidence(input, partMatches, true),
+      } satisfies MealAnalysisItem,
+    ];
+  });
   const candidates = matched
-    ? rankedCandidates.slice(0, 3).map((entry) => entry.candidate)
+    ? [
+        ...new Map(
+          [
+            ...matchedItems.flatMap((item) =>
+              candidateMeals.find((candidate) => candidate.id === item.candidateId) ?? [],
+            ),
+            ...rankedCandidates.slice(0, 3).map((entry) => entry.candidate),
+          ].map((candidate) => [candidate.id, candidate] as const),
+        ).values(),
+      ]
     : candidateMeals.slice(0, 3);
   const selectedCandidate = candidates[0] ?? candidateMeals[0];
 
@@ -467,6 +581,7 @@ export function analyzeMealInput(
       matched,
     ),
     candidates,
+    items: matchedItems,
     selectedCandidateId: selectedCandidate.id,
     selectedModifierIds: inferModifierIds(selectedCandidate, source),
     provider: "heuristic",

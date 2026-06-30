@@ -29,6 +29,10 @@ async function fileToDataUrl(file: File) {
   return `data:${mimeType};base64,${base64}`;
 }
 
+function isImageFile(input: FormDataEntryValue | null): input is File {
+  return input instanceof File && input.size > 0;
+}
+
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
   const payload: MealAnalysisInput = {
@@ -40,28 +44,43 @@ export async function POST(request: Request) {
       mode?: unknown;
       query?: unknown;
       fileName?: unknown;
+      fileNames?: unknown;
     };
 
     payload.mode = normalizeMode(body.mode);
     payload.query = typeof body.query === "string" ? body.query : undefined;
     payload.fileName =
       typeof body.fileName === "string" ? body.fileName : undefined;
+    payload.fileNames = Array.isArray(body.fileNames)
+      ? body.fileNames.filter((fileName): fileName is string => typeof fileName === "string")
+      : undefined;
   } else {
     const formData = await request.formData();
     const image = formData.get("image");
+    const images = [
+      ...formData.getAll("images"),
+      ...formData.getAll("images[]"),
+    ].filter(isImageFile);
     const mode = formData.get("mode");
     const query = formData.get("query");
+    const imageFiles = images.length > 0
+      ? images
+      : isImageFile(image)
+        ? [image]
+        : [];
 
     payload.mode = normalizeMode(mode);
     payload.query = typeof query === "string" ? query : undefined;
-    payload.fileName = image instanceof File ? image.name : undefined;
+    payload.fileName = imageFiles[0]?.name;
+    payload.fileNames = imageFiles.map((file) => file.name);
 
-    if (image instanceof File) {
-      payload.imageDataUrl = await fileToDataUrl(image);
+    if (imageFiles.length > 0) {
+      payload.imageDataUrls = await Promise.all(imageFiles.map(fileToDataUrl));
+      payload.imageDataUrl = payload.imageDataUrls[0];
     }
   }
 
-  if (!payload.imageDataUrl) {
+  if (!payload.imageDataUrl && !payload.imageDataUrls?.length) {
     return NextResponse.json(analyzeMealInput(payload));
   }
 

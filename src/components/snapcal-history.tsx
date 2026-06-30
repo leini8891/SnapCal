@@ -19,7 +19,9 @@ type WeightPoint = {
   key: string;
   label: string;
   tooltipLabel: string;
-  weightKg: number;
+  weightKg: number | null;
+  calories: number | null;
+  calorieRange: Range | null;
 };
 type DailyRecordCategory = "excellent" | "normal" | "needs-work";
 type DailyRecordFilter = "all" | DailyRecordCategory;
@@ -91,17 +93,36 @@ function average(values: number[]) {
     : 0;
 }
 
-function averageRange(records: DailyWellnessRecord[]) {
-  const ranges = records
-    .map((record) => record.calorieRange)
-    .filter((range): range is Range => Boolean(range));
+function averageCaloriesFromDailyMetrics(
+  records: DailyWellnessRecord[],
+  dayGroupsByKey: Map<string, { totalRange: Range }>,
+) {
+  const calorieByDay = new Map<string, Range>();
 
-  if (ranges.length === 0) {
+  for (const record of records) {
+    const calorieRange =
+      record.calorieRange ?? dayGroupsByKey.get(record.dayKey)?.totalRange ?? null;
+
+    if (calorieRange) {
+      calorieByDay.set(record.dayKey, calorieRange);
+    }
+  }
+
+  for (const [dayKey, group] of dayGroupsByKey) {
+    if (!calorieByDay.has(dayKey)) {
+      calorieByDay.set(dayKey, group.totalRange);
+    }
+  }
+
+  if (calorieByDay.size === 0) {
     return null;
   }
 
   return Math.round(
-    ranges.reduce((sum, range) => sum + rangeMidpoint(range), 0) / ranges.length,
+    Array.from(calorieByDay.values()).reduce(
+      (sum, range) => sum + rangeMidpoint(range),
+      0,
+    ) / calorieByDay.size,
   );
 }
 
@@ -116,17 +137,51 @@ function getWeekKey(dayKey: string) {
 
 function buildWeightSeries(
   records: DailyWellnessRecord[],
+  dayGroupsByKey: Map<string, { totalRange: Range }>,
   view: WeightView,
   language: SnapCalLanguage,
 ) {
-  const datedWeights = records
-    .filter((record): record is DailyWellnessRecord & { weightKg: number } =>
-      typeof record.weightKg === "number",
+  const dailyMetrics = new Map<
+    string,
+    { dayKey: string; weightKg: number | null; calorieRange: Range | null }
+  >();
+
+  for (const record of records) {
+    dailyMetrics.set(record.dayKey, {
+      dayKey: record.dayKey,
+      weightKg: typeof record.weightKg === "number" ? record.weightKg : null,
+      calorieRange:
+        record.calorieRange ?? dayGroupsByKey.get(record.dayKey)?.totalRange ?? null,
+    });
+  }
+
+  for (const [dayKey, group] of dayGroupsByKey) {
+    const existing = dailyMetrics.get(dayKey);
+
+    if (existing) {
+      dailyMetrics.set(dayKey, {
+        ...existing,
+        calorieRange: existing.calorieRange ?? group.totalRange,
+      });
+      continue;
+    }
+
+    dailyMetrics.set(dayKey, {
+      dayKey,
+      weightKg: null,
+      calorieRange: group.totalRange,
+    });
+  }
+
+  const datedMetrics = Array.from(dailyMetrics.values())
+    .filter(
+      (record) =>
+        typeof record.weightKg === "number" || Boolean(record.calorieRange),
     )
     .sort((left, right) => left.dayKey.localeCompare(right.dayKey));
 
   if (view === "day") {
-    return datedWeights.map((record) => ({
+    return datedMetrics.map((record) => ({
       key: record.dayKey,
       label: formatDay(record.dayKey, language),
       tooltipLabel:
@@ -134,17 +189,29 @@ function buildWeightSeries(
           ? `日期：${formatDay(record.dayKey, language)}`
           : `Day: ${formatDay(record.dayKey, language)}`,
       weightKg: record.weightKg,
+      calories: record.calorieRange ? rangeMidpoint(record.calorieRange) : null,
+      calorieRange: record.calorieRange,
     })) satisfies WeightPoint[];
   }
 
-  const grouped = new Map<string, { label: string; weights: number[] }>();
+  const grouped = new Map<
+    string,
+    { label: string; weights: number[]; calories: number[] }
+  >();
 
-  for (const record of datedWeights) {
+  for (const record of datedMetrics) {
     const key = view === "week" ? getWeekKey(record.dayKey) : record.dayKey.slice(0, 7);
     const existing = grouped.get(key);
+    const calories = record.calorieRange ? rangeMidpoint(record.calorieRange) : null;
 
     if (existing) {
-      existing.weights.push(record.weightKg);
+      if (typeof record.weightKg === "number") {
+        existing.weights.push(record.weightKg);
+      }
+
+      if (typeof calories === "number") {
+        existing.calories.push(calories);
+      }
       continue;
     }
 
@@ -155,7 +222,8 @@ function buildWeightSeries(
             ? `${formatDay(key, language)} 当周`
             : `Week of ${formatDay(key, language)}`
           : monthFormatters[language].format(toSingaporeDate(`${key}-01`)),
-      weights: [record.weightKg],
+      weights: typeof record.weightKg === "number" ? [record.weightKg] : [],
+      calories: typeof calories === "number" ? [calories] : [],
     });
   }
 
@@ -170,16 +238,25 @@ function buildWeightSeries(
         : language === "zh"
           ? `月份：${group.label}`
           : `Month: ${group.label}`,
-    weightKg: Number(average(group.weights).toFixed(1)),
+    weightKg:
+      group.weights.length > 0 ? Number(average(group.weights).toFixed(1)) : null,
+    calories:
+      group.calories.length > 0 ? Math.round(average(group.calories)) : null,
+    calorieRange: null,
   })) satisfies WeightPoint[];
 }
 
 function getPlateauReadout(series: WeightPoint[], language: SnapCalLanguage) {
-  if (series.length < 4) {
+  const weightedSeries = series.filter(
+    (point): point is WeightPoint & { weightKg: number } =>
+      typeof point.weightKg === "number",
+  );
+
+  if (weightedSeries.length < 4) {
     return language === "zh" ? "积累中" : "Building";
   }
 
-  const recent = series.slice(-4);
+  const recent = weightedSeries.slice(-4);
   const delta = recent[recent.length - 1].weightKg - recent[0].weightKg;
 
   if (Math.abs(delta) < 0.3) {
@@ -303,8 +380,8 @@ export default function SnapCalHistory() {
     [logs],
   );
   const weightSeries = useMemo(
-    () => buildWeightSeries(wellnessRecords, weightView, language),
-    [wellnessRecords, weightView, language],
+    () => buildWeightSeries(wellnessRecords, dayGroupsByKey, weightView, language),
+    [dayGroupsByKey, wellnessRecords, weightView, language],
   );
   const weightedRecords = chronologicalRecords.filter(
     (record): record is DailyWellnessRecord & { weightKg: number } =>
@@ -323,7 +400,10 @@ export default function SnapCalHistory() {
         .filter((score): score is number => typeof score === "number"),
     ),
   );
-  const averageCalories = averageRange(wellnessRecords);
+  const averageCalories = useMemo(
+    () => averageCaloriesFromDailyMetrics(wellnessRecords, dayGroupsByKey),
+    [dayGroupsByKey, wellnessRecords],
+  );
   const trackedDays = wellnessRecords.length;
   const latestRecord = sortedRecords[0];
   const plateauReadout = getPlateauReadout(weightSeries, language);
@@ -451,10 +531,10 @@ export default function SnapCalHistory() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">
-                {isZh ? "体重趋势" : "Weight Trend"}
+                {isZh ? "体重 + 摄入热量趋势" : "Weight + Intake Calories Trend"}
               </p>
               <h2 className="font-display mt-2 text-3xl text-[var(--foreground)]">
-                {isZh ? "按日、周、月查看减重进度" : "Day, week, and month view"}
+                {isZh ? "看食物摄入和体重如何一起变化" : "See how food intake and weight move together"}
               </h2>
             </div>
             <div className="grid grid-cols-3 overflow-hidden rounded-full border border-[rgba(55,36,24,0.12)] bg-white/78 p-1 text-sm font-semibold">
@@ -483,7 +563,7 @@ export default function SnapCalHistory() {
                 value={plateauReadout}
               />
               <MetricCard
-                label={isZh ? "平均热量" : "Average calories"}
+                label={isZh ? "平均摄入" : "Average intake"}
                 value={
                   averageCalories
                     ? `${averageCalories} kcal`
@@ -717,6 +797,18 @@ export default function SnapCalHistory() {
   );
 }
 
+function formatTrendCalories(point: WeightPoint, language: SnapCalLanguage) {
+  if (point.calorieRange) {
+    return formatCalories(point.calorieRange);
+  }
+
+  if (typeof point.calories === "number") {
+    return `${point.calories} kcal`;
+  }
+
+  return language === "zh" ? "暂无热量" : "No calories";
+}
+
 function WeightChart({
   language,
   series,
@@ -729,31 +821,71 @@ function WeightChart({
   const height = 220;
   const paddingX = 34;
   const paddingY = 24;
-  const weights = series.map((point) => point.weightKg);
+  const weights = series
+    .map((point) => point.weightKg)
+    .filter((value): value is number => typeof value === "number");
+  const calories = series
+    .map((point) => point.calories)
+    .filter((value): value is number => typeof value === "number");
   const minWeight = weights.length > 0 ? Math.min(...weights) - 0.3 : 0;
   const maxWeight = weights.length > 0 ? Math.max(...weights) + 0.3 : 1;
   const span = Math.max(maxWeight - minWeight, 0.8);
+  const minCaloriesRaw = calories.length > 0 ? Math.min(...calories) : 0;
+  const maxCaloriesRaw = calories.length > 0 ? Math.max(...calories) : 1;
+  const caloriePadding = Math.max(120, (maxCaloriesRaw - minCaloriesRaw) * 0.12);
+  const minCalories = Math.max(0, minCaloriesRaw - caloriePadding);
+  const maxCalories = maxCaloriesRaw + caloriePadding;
+  const calorieSpan = Math.max(maxCalories - minCalories, 300);
   const points = series.map((point, index) => {
     const x =
       series.length === 1
         ? width / 2
         : paddingX + (index / (series.length - 1)) * (width - paddingX * 2);
-    const y = height - paddingY - ((point.weightKg - minWeight) / span) * (height - paddingY * 2);
+    const weightY =
+      typeof point.weightKg === "number"
+        ? height - paddingY - ((point.weightKg - minWeight) / span) * (height - paddingY * 2)
+        : null;
+    const calorieY =
+      typeof point.calories === "number"
+        ? height -
+          paddingY -
+          ((point.calories - minCalories) / calorieSpan) * (height - paddingY * 2)
+        : null;
 
-    return { ...point, x, y };
+    return { ...point, x, weightY, calorieY };
   });
-  const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const weightPoints = points.filter(
+    (point): point is typeof point & { weightY: number } =>
+      typeof point.weightY === "number",
+  );
+  const caloriePoints = points.filter(
+    (point): point is typeof point & { calorieY: number } =>
+      typeof point.calorieY === "number",
+  );
+  const weightPolyline = weightPoints.map((point) => `${point.x},${point.weightY}`).join(" ");
+  const caloriePolyline = caloriePoints.map((point) => `${point.x},${point.calorieY}`).join(" ");
   const hoveredPoint = points.find((point) => point.key === hoveredKey) ?? null;
+  const hoveredTop = hoveredPoint?.weightY ?? hoveredPoint?.calorieY ?? height / 2;
 
   return (
     <div className="relative rounded-[24px] border border-[rgba(55,36,24,0.08)] bg-white/82 px-4 py-4">
       {points.length > 0 ? (
         <>
+          <div className="mb-3 flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            <span className="inline-flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--teal)]" />
+              {language === "zh" ? "体重 kg" : "Weight kg"}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--amber)]" />
+              {language === "zh" ? "摄入 kcal" : "Intake kcal"}
+            </span>
+          </div>
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="h-64 w-full"
             role="img"
-            aria-label={language === "zh" ? "体重趋势图" : "Weight trend chart"}
+            aria-label={language === "zh" ? "体重和摄入热量趋势图" : "Weight and intake calories trend chart"}
             onMouseLeave={() => setHoveredKey(null)}
           >
             {[0, 1, 2, 3].map((line) => {
@@ -770,14 +902,26 @@ function WeightChart({
                 />
               );
             })}
-            <polyline
-              fill="none"
-              points={polyline}
-              stroke="var(--teal)"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="4"
-            />
+            {caloriePoints.length > 1 ? (
+              <polyline
+                fill="none"
+                points={caloriePolyline}
+                stroke="var(--amber)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="3"
+              />
+            ) : null}
+            {weightPoints.length > 1 ? (
+              <polyline
+                fill="none"
+                points={weightPolyline}
+                stroke="var(--teal)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="4"
+              />
+            ) : null}
             {points.map((point) => (
               <g
                 key={point.key}
@@ -787,16 +931,41 @@ function WeightChart({
                 onFocus={() => setHoveredKey(point.key)}
                 onMouseEnter={() => setHoveredKey(point.key)}
               >
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r="15"
-                  fill="transparent"
+                <line
+                  x1={point.x}
+                  x2={point.x}
+                  y1={paddingY}
+                  y2={height - paddingY}
                   stroke="transparent"
+                  strokeWidth="18"
                 />
-                <circle cx={point.x} cy={point.y} r="5" fill="var(--coral)" />
-                <title>{`${point.tooltipLabel}: ${point.weightKg.toFixed(1)} kg`}</title>
+                <title>{`${point.tooltipLabel}: ${formatWeight(
+                  point.weightKg,
+                  language,
+                )} · ${formatTrendCalories(point, language)}`}</title>
               </g>
+            ))}
+            {caloriePoints.map((point) => (
+              <circle
+                key={`calories-${point.key}`}
+                cx={point.x}
+                cy={point.calorieY}
+                r="5"
+                fill="var(--amber)"
+                stroke="white"
+                strokeWidth="2"
+              />
+            ))}
+            {weightPoints.map((point) => (
+              <circle
+                key={`weight-${point.key}`}
+                cx={point.x}
+                cy={point.weightY}
+                r="5.5"
+                fill="var(--teal)"
+                stroke="white"
+                strokeWidth="2"
+              />
             ))}
           </svg>
           {hoveredPoint ? (
@@ -804,7 +973,7 @@ function WeightChart({
               className="pointer-events-none absolute z-10 min-w-44 rounded-[18px] border border-[rgba(55,36,24,0.1)] bg-white px-4 py-3 text-sm shadow-[0_18px_44px_rgba(55,36,24,0.14)]"
               style={{
                 left: `${(hoveredPoint.x / width) * 100}%`,
-                top: `${(hoveredPoint.y / height) * 100}%`,
+                top: `${(hoveredTop / height) * 100}%`,
                 transform:
                   hoveredPoint.x > width * 0.72
                     ? "translate(-100%, -115%)"
@@ -817,23 +986,45 @@ function WeightChart({
               <p className="mt-1 font-semibold text-[var(--foreground)]">
                 {hoveredPoint.tooltipLabel}
               </p>
-              <p className="mt-1 font-display text-2xl text-[var(--foreground)]">
-                {hoveredPoint.weightKg.toFixed(1)} kg
-              </p>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    {language === "zh" ? "体重" : "Weight"}
+                  </p>
+                  <p className="mt-1 font-display text-xl text-[var(--foreground)]">
+                    {formatWeight(hoveredPoint.weightKg, language)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    {language === "zh" ? "摄入" : "Intake"}
+                  </p>
+                  <p className="mt-1 font-display text-xl text-[var(--foreground)]">
+                    {formatTrendCalories(hoveredPoint, language)}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : null}
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {points.slice(-4).map((point) => (
               <div key={point.key} className="rounded-[16px] bg-[rgba(255,248,240,0.86)] px-3 py-2">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{point.label}</p>
-                <p className="mt-1 font-display text-xl text-[var(--foreground)]">{point.weightKg.toFixed(1)} kg</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <p className="font-display text-lg text-[var(--foreground)]">
+                    {formatWeight(point.weightKg, language)}
+                  </p>
+                  <p className="font-display text-lg text-[var(--foreground)]">
+                    {formatTrendCalories(point, language)}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         </>
       ) : (
         <div className="flex h-64 items-center justify-center text-sm text-[var(--muted)]">
-          {language === "zh" ? "还没有体重数据。" : "No weight data yet."}
+          {language === "zh" ? "还没有体重或摄入热量数据。" : "No weight or intake data yet."}
         </div>
       )}
     </div>

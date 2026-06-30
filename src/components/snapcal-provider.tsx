@@ -35,6 +35,7 @@ import { clampGoal } from "@/lib/tdee";
 import {
   buildAutoSavedMealSeeds,
   buildMealShortcutKey,
+  getSingaporeDayKey,
   sortLogsNewestFirst,
   sortSavedMeals,
 } from "@/lib/snapcal-utils";
@@ -2126,10 +2127,31 @@ export function SnapCalProvider({ children }: { children: ReactNode }) {
       activityLevel: sanitizeActivityLevel(input.activityLevel),
       proteinGoalG: sanitizePositiveInteger(input.proteinGoalG),
     };
+    const completedDayKey = getSingaporeDayKey(completedAt);
+    const shouldSeedWeightRecord =
+      nextProfile.weightKg !== null &&
+      !wellnessRecords.some(
+        (record) =>
+          record.dayKey === completedDayKey && typeof record.weightKg === "number",
+      );
+    const nextWellnessRecords = shouldSeedWeightRecord
+      ? mergeWellnessRecord(wellnessRecords, {
+          dayKey: completedDayKey,
+          weightKg: nextProfile.weightKg,
+          sourceNote: "Onboarding body profile.",
+        })
+      : wellnessRecords;
 
     setGoalState(nextGoal);
     setProfileState(nextProfile);
-    void syncReplaceSnapshot(nextGoal, logs, savedMeals, nextProfile);
+    setWellnessRecords(nextWellnessRecords);
+    void syncReplaceSnapshot(
+      nextGoal,
+      logs,
+      savedMeals,
+      nextProfile,
+      nextWellnessRecords,
+    );
   }
 
   const shouldBlockForCloudAuth = cloudConfigured && !supabaseUserId;

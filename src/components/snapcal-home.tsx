@@ -15,6 +15,7 @@ import {
 } from "@/components/snapcal-provider";
 import {
   buildDraftFromShortcut,
+  type MealAnalysisItem,
   type MealAnalysisResult,
 } from "@/lib/analyze/meal-analysis";
 import { prepareImageUpload } from "@/lib/client/image-upload";
@@ -42,6 +43,8 @@ import {
 } from "@/lib/snapcal-utils";
 
 type InputMode = "camera" | "gallery" | "text";
+type ServingMode = "solo" | "shared";
+type DraftMealItem = MealAnalysisItem;
 
 function confidenceTone(confidence: MealConfidence | null | undefined) {
   if (confidence === "High") {
@@ -57,6 +60,25 @@ function confidenceTone(confidence: MealConfidence | null | undefined) {
 
 function midpoint(range: Range) {
   return (range[0] + range[1]) / 2;
+}
+
+function scaleRange(range: Range, factor: number): Range {
+  return [
+    Math.max(0, Math.round(range[0] * factor)),
+    Math.max(0, Math.round(range[1] * factor)),
+  ];
+}
+
+function addRanges(left: Range, right: Range): Range {
+  return [left[0] + right[0], left[1] + right[1]];
+}
+
+function clampShareInput(value: number) {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.min(12, Math.max(1, Math.round(value)));
 }
 
 function confidenceLabel(
@@ -198,10 +220,15 @@ export default function SnapCalHome() {
   const [analysisCandidates, setAnalysisCandidates] =
     useState<CandidateMeal[]>(candidateMeals);
   const [analysisUploadFile, setAnalysisUploadFile] = useState<File | null>(null);
+  const [analysisUploadFiles, setAnalysisUploadFiles] = useState<File[]>([]);
   const [dishHint, setDishHint] = useState("");
   const [draftDishQuery, setDraftDishQuery] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [previewName, setPreviewName] = useState("No photo selected yet");
+  const [servingMode, setServingMode] = useState<ServingMode>("solo");
+  const [sharedPeople, setSharedPeople] = useState(3);
+  const [myShare, setMyShare] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisConfidence, setAnalysisConfidence] =
     useState<MealAnalysisResult["analysisConfidence"]>(null);
@@ -211,6 +238,8 @@ export default function SnapCalHome() {
   const [selectedModifierIds, setSelectedModifierIds] = useState<string[]>(
     candidateMeals[0].defaultModifierIds,
   );
+  const [draftItems, setDraftItems] = useState<DraftMealItem[]>([]);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [editingLogDraft, setEditingLogDraft] = useState<{
     id: string;
     loggedAt: string;
@@ -232,17 +261,16 @@ export default function SnapCalHome() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   useEffect(() => {
     if (
       !hasDraft &&
       !previewUrl &&
       !analysisUploadFile &&
+      analysisUploadFiles.length === 0 &&
       !editingLogDraft &&
       searchTerm.trim().length === 0
     ) {
@@ -250,6 +278,7 @@ export default function SnapCalHome() {
     }
   }, [
     analysisUploadFile,
+    analysisUploadFiles.length,
     editingLogDraft,
     hasDraft,
     previewUrl,
@@ -265,7 +294,9 @@ export default function SnapCalHome() {
     );
   const visibleCandidates =
     analysisCandidates.length > 0 ? analysisCandidates : candidateMeals;
+  const activeDraftItem = draftItems[activeItemIndex];
   const selectedCandidate =
+    candidateMeals.find((candidate) => candidate.id === activeDraftItem?.candidateId) ??
     visibleCandidates.find((candidate) => candidate.id === selectedCandidateId) ??
     visibleCandidates[0];
   const quickSwapCandidates = visibleCandidates
@@ -275,14 +306,64 @@ export default function SnapCalHome() {
     0,
     3,
   );
-  const draftModifierLabels = selectedCandidate.modifiers
-    .filter((modifier) => selectedModifierIds.includes(modifier.id))
-    .map((modifier) => modifier.label);
-  const draftRange = applyModifierIdsToCandidate(
-    selectedCandidate,
-    selectedModifierIds,
+  const safeSharedPeople = clampShareInput(sharedPeople);
+  const safeMyShare = Math.min(clampShareInput(myShare), safeSharedPeople);
+  const servingFactor = servingMode === "shared" ? safeMyShare / safeSharedPeople : 1;
+  const draftItemEstimates = (draftItems.length > 0
+    ? draftItems
+    : [
+        {
+          candidateId: selectedCandidate.id,
+          modifierIds: selectedModifierIds,
+          portion: 1,
+          confidence: analysisConfidence ?? selectedCandidate.confidence,
+        } satisfies DraftMealItem,
+      ]).flatMap((item) => {
+        const itemCandidate = candidateMeals.find(
+          (candidate) => candidate.id === item.candidateId,
+        );
+
+        if (!itemCandidate) {
+          return [];
+        }
+
+        const baseRange = applyModifierIdsToCandidate(
+          itemCandidate,
+          item.modifierIds,
+        );
+        const portionRange = scaleRange(baseRange, item.portion);
+        const macroRange = estimateMacroRange(itemCandidate, portionRange);
+
+        return [
+          {
+            ...item,
+            candidate: itemCandidate,
+            kcalRange: scaleRange(portionRange, servingFactor),
+            unsharedKcalRange: portionRange,
+            macroRange: {
+              protein: scaleRange(macroRange.protein, servingFactor),
+              carbs: scaleRange(macroRange.carbs, servingFactor),
+              fat: scaleRange(macroRange.fat, servingFactor),
+            },
+          },
+        ];
+      });
+  const draftRange = draftItemEstimates.reduce<Range>(
+    (total, item) => addRanges(total, item.kcalRange),
+    [0, 0],
   );
-  const draftMacroRange = estimateMacroRange(selectedCandidate, draftRange);
+  const draftMacroRange = draftItemEstimates.reduce(
+    (total, item) => ({
+      protein: addRanges(total.protein, item.macroRange.protein),
+      carbs: addRanges(total.carbs, item.macroRange.carbs),
+      fat: addRanges(total.fat, item.macroRange.fat),
+    }),
+    {
+      protein: [0, 0] as Range,
+      carbs: [0, 0] as Range,
+      fat: [0, 0] as Range,
+    },
+  );
   const consumedSoFar = sumRanges(todayLogs);
   const projectedAfterConfirm: Range = [
     consumedSoFar[0] + draftRange[0],
@@ -300,6 +381,26 @@ export default function SnapCalHome() {
     remainingAfterConfirm,
   });
   const currentConfidence = analysisConfidence ?? selectedCandidate.confidence;
+  const draftMealName = draftItemEstimates.length > 1
+    ? draftItemEstimates.map((item) => item.candidate.name).join(" + ")
+    : selectedCandidate.name;
+  const draftLogModifierLabels = [
+    ...draftItemEstimates.map((item) => {
+      const modifierLabels = item.candidate.modifiers
+        .filter((modifier) => item.modifierIds.includes(modifier.id))
+        .map((modifier) => modifier.label);
+      const portionLabel = item.portion !== 1 ? `x${item.portion}` : null;
+
+      return [item.candidate.name, portionLabel, ...modifierLabels]
+        .filter(Boolean)
+        .join(" · ");
+    }),
+    servingMode === "shared"
+      ? isZh
+        ? `聚餐分摊：${safeMyShare}/${safeSharedPeople}`
+        : `Shared meal: ${safeMyShare}/${safeSharedPeople}`
+      : null,
+  ].filter((label): label is string => Boolean(label));
   const showEstimate = hasDraft;
   const showLoadingState =
     !showEstimate &&
@@ -307,20 +408,25 @@ export default function SnapCalHome() {
     (Boolean(previewUrl) || searchTerm.trim().length > 0);
 
   function resetDraft(nextStatusMessage = readyMessage) {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
     setPreviewUrl(null);
+    setPreviewUrls([]);
     setPreviewName("No photo selected yet");
     setAnalysisUploadFile(null);
+    setAnalysisUploadFiles([]);
     setDishHint("");
     setDraftDishQuery("");
     setSearchTerm("");
     setInputMode("camera");
+    setServingMode("solo");
+    setSharedPeople(3);
+    setMyShare(1);
     setAnalysisCandidates(candidateMeals);
     setSelectedCandidateId(candidateMeals[0].id);
     setSelectedModifierIds(candidateMeals[0].defaultModifierIds);
+    setDraftItems([]);
+    setActiveItemIndex(0);
     setAnalysisConfidence(null);
     setEditingLogDraft(null);
     setHasDraft(false);
@@ -331,6 +437,29 @@ export default function SnapCalHome() {
   function selectCandidate(candidate: CandidateMeal) {
     setSelectedCandidateId(candidate.id);
     setSelectedModifierIds(candidate.defaultModifierIds);
+    setDraftItems((items) => {
+      if (items.length === 0) {
+        return [
+          {
+            candidateId: candidate.id,
+            modifierIds: candidate.defaultModifierIds,
+            portion: 1,
+            confidence: candidate.confidence,
+          },
+        ];
+      }
+
+      return items.map((item, index) =>
+        index === activeItemIndex
+          ? {
+              ...item,
+              candidateId: candidate.id,
+              modifierIds: candidate.defaultModifierIds,
+              confidence: candidate.confidence,
+            }
+          : item,
+      );
+    });
     setAnalysisConfidence(candidate.confidence);
     setHasDraft(true);
   }
@@ -347,10 +476,17 @@ export default function SnapCalHome() {
   function updateSearchTerm(value: string) {
     setSearchTerm(value);
 
-    if (value.trim().length === 0 && !analysisUploadFile && !editingLogDraft) {
+    if (
+      value.trim().length === 0 &&
+      !analysisUploadFile &&
+      analysisUploadFiles.length === 0 &&
+      !editingLogDraft
+    ) {
       setAnalysisCandidates(candidateMeals);
       setSelectedCandidateId(candidateMeals[0].id);
       setSelectedModifierIds(candidateMeals[0].defaultModifierIds);
+      setDraftItems([]);
+      setActiveItemIndex(0);
       setAnalysisConfidence(null);
       setHasDraft(false);
       setStatusMessage(
@@ -377,23 +513,45 @@ export default function SnapCalHome() {
         ? result.selectedModifierIds
         : nextSelectedCandidate.defaultModifierIds,
     );
+    setDraftItems(
+      result.items.length > 0
+        ? result.items
+        : [
+            {
+              candidateId: nextSelectedCandidate.id,
+              modifierIds:
+                result.selectedModifierIds.length > 0
+                  ? result.selectedModifierIds
+                  : nextSelectedCandidate.defaultModifierIds,
+              portion: 1,
+              confidence: result.analysisConfidence ?? nextSelectedCandidate.confidence,
+            },
+          ],
+    );
+    setActiveItemIndex(0);
     setDishHint("");
     setDraftDishQuery("");
     setHasDraft(true);
     setStatusMessage(
       isZh
-        ? `${nextSelectedCandidate.name} 是目前最接近的匹配。如果哪里不准，可以用快速调整微调。`
-        : `${nextSelectedCandidate.name} is the closest match right now. Adjust the quick fixes if anything looks off.`,
+        ? result.items.length > 1
+          ? `已识别 ${result.items.length} 个餐食项目。可以点每一项微调份量或配料。`
+          : `${nextSelectedCandidate.name} 是目前最接近的匹配。如果哪里不准，可以用快速调整微调。`
+        : result.items.length > 1
+          ? `${result.items.length} meal items found. Tap each item to tune portions or modifiers.`
+          : `${nextSelectedCandidate.name} is the closest match right now. Adjust the quick fixes if anything looks off.`,
     );
   }
 
   async function analyzeMeal({
     file,
+    files,
     introMessage,
     mode,
     query,
   }: {
     file?: File;
+    files?: File[];
     introMessage?: string;
     mode: InputMode;
     query?: string;
@@ -412,14 +570,17 @@ export default function SnapCalHome() {
     );
 
     try {
-      const response = file
+      const uploadFiles = files?.length ? files : file ? [file] : [];
+      const response = uploadFiles.length > 0
         ? await fetch("/api/analyze-meal", {
             method: "POST",
             body: (() => {
               const formData = new FormData();
 
               formData.set("mode", mode);
-              formData.set("image", file);
+              uploadFiles.forEach((uploadFile) => {
+                formData.append("images", uploadFile);
+              });
 
               if (query) {
                 formData.set("query", query);
@@ -436,6 +597,7 @@ export default function SnapCalHome() {
             body: JSON.stringify({
               mode,
               query,
+              fileNames: analysisUploadFiles.map((uploadFile) => uploadFile.name),
             }),
           });
 
@@ -482,12 +644,12 @@ export default function SnapCalHome() {
   }
 
   function runQuickExample(query: string, label: string) {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
     setAnalysisUploadFile(null);
+    setAnalysisUploadFiles([]);
+    setPreviewUrl(null);
+    setPreviewUrls([]);
     setDishHint("");
     setDraftDishQuery("");
     setPreviewName("No photo selected yet");
@@ -518,39 +680,69 @@ export default function SnapCalHome() {
     event: ChangeEvent<HTMLInputElement>,
     mode: Extract<InputMode, "camera" | "gallery">,
   ) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []).slice(0, 6);
 
-    if (!file) {
+    if (files.length === 0) {
       return;
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl(nextPreviewUrl);
-    setPreviewName(file.name);
+    const nextPreviewUrls = files.map((selectedFile) => URL.createObjectURL(selectedFile));
+    setPreviewUrls(nextPreviewUrls);
+    setPreviewUrl(nextPreviewUrls[0] ?? null);
+    setPreviewName(
+      files.length === 1
+        ? files[0].name
+        : isZh
+          ? `${files.length} 张照片已选择`
+          : `${files.length} photos selected`,
+    );
     setDishHint("");
     setDraftDishQuery("");
     setInputMode(mode);
-    setStatusMessage(isZh ? "照片已添加，正在估算..." : "Photo added. Estimating now...");
+    setStatusMessage(
+      isZh
+        ? files.length > 1
+          ? `${files.length} 张照片已添加，正在估算整餐...`
+          : "照片已添加，正在估算..."
+        : files.length > 1
+          ? `${files.length} photos added. Estimating the meal...`
+          : "Photo added. Estimating now...",
+    );
 
     try {
-      const preparedUpload = await prepareImageUpload(file);
-      setAnalysisUploadFile(preparedUpload.file);
+      const preparedUploads = await Promise.all(
+        files.map((selectedFile) => prepareImageUpload(selectedFile)),
+      );
+      const preparedFiles = preparedUploads.map((upload) => upload.file);
+      setAnalysisUploadFile(preparedFiles[0] ?? null);
+      setAnalysisUploadFiles(preparedFiles);
 
       void analyzeMeal({
-        file: preparedUpload.file,
+        files: preparedFiles,
         mode,
-        introMessage: isZh ? "照片已添加，正在估算..." : "Photo added. Estimating now...",
+        introMessage: isZh
+          ? files.length > 1
+            ? `${files.length} 张照片已添加，正在估算整餐...`
+            : "照片已添加，正在估算..."
+          : files.length > 1
+            ? `${files.length} photos added. Estimating the meal...`
+            : "Photo added. Estimating now...",
       });
     } catch {
-      setAnalysisUploadFile(file);
+      setAnalysisUploadFile(files[0] ?? null);
+      setAnalysisUploadFiles(files);
       void analyzeMeal({
-        file,
+        files,
         mode,
-        introMessage: isZh ? "照片已添加，正在估算..." : "Photo added. Estimating now...",
+        introMessage: isZh
+          ? files.length > 1
+            ? `${files.length} 张照片已添加，正在估算整餐...`
+            : "照片已添加，正在估算..."
+          : files.length > 1
+            ? `${files.length} photos added. Estimating the meal...`
+            : "Photo added. Estimating now...",
       });
     }
 
@@ -560,12 +752,12 @@ export default function SnapCalHome() {
   function handleDishHintSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!analysisUploadFile || dishHint.trim().length === 0) {
+    if (analysisUploadFiles.length === 0 || dishHint.trim().length === 0) {
       return;
     }
 
     void analyzeMeal({
-      file: analysisUploadFile,
+      files: analysisUploadFiles,
       mode: inputMode === "text" ? "gallery" : inputMode,
       query: dishHint.trim(),
       introMessage: isZh
@@ -585,8 +777,8 @@ export default function SnapCalHome() {
 
     setSearchTerm(normalizedQuery);
     void analyzeMeal({
-      file: analysisUploadFile ?? undefined,
-      mode: analysisUploadFile
+      files: analysisUploadFiles.length > 0 ? analysisUploadFiles : undefined,
+      mode: analysisUploadFiles.length > 0
         ? inputMode === "text"
           ? "gallery"
           : inputMode
@@ -598,6 +790,22 @@ export default function SnapCalHome() {
     });
   }
 
+  function selectDraftItem(index: number) {
+    const item = draftItems[index];
+    const itemCandidate = item
+      ? candidateMeals.find((candidate) => candidate.id === item.candidateId)
+      : null;
+
+    if (!item || !itemCandidate) {
+      return;
+    }
+
+    setActiveItemIndex(index);
+    setSelectedCandidateId(itemCandidate.id);
+    setSelectedModifierIds(item.modifierIds);
+    setAnalysisConfidence(item.confidence ?? itemCandidate.confidence);
+  }
+
   function toggleModifier(modifierId: string) {
     setDuplicateConfirmSignature(null);
     setSelectedModifierIds((current) =>
@@ -605,21 +813,37 @@ export default function SnapCalHome() {
         ? current.filter((item) => item !== modifierId)
         : [...current, modifierId],
     );
+    setDraftItems((items) =>
+      items.map((item, index) => {
+        if (index !== activeItemIndex) {
+          return item;
+        }
+
+        const nextModifierIds = item.modifierIds.includes(modifierId)
+          ? item.modifierIds.filter((itemModifierId) => itemModifierId !== modifierId)
+          : [...item.modifierIds, modifierId];
+
+        return {
+          ...item,
+          modifierIds: nextModifierIds,
+        };
+      }),
+    );
   }
 
   function buildConfirmationSignature() {
     return [
       editingLogDraft?.id ?? "new",
-      selectedCandidate.id,
+      draftMealName,
       draftRange[0],
       draftRange[1],
-      [...selectedModifierIds].sort().join("|"),
+      [...draftLogModifierLabels].sort().join("|"),
     ].join("::");
   }
 
   function findRecentDuplicateLog(now: number) {
     const duplicateWindowMs = 20 * 60 * 1000;
-    const modifierSignature = [...draftModifierLabels].sort().join("|");
+    const modifierSignature = [...draftLogModifierLabels].sort().join("|");
 
     return todayLogs.find((log) => {
       if (editingLogDraft?.id === log.id) {
@@ -636,7 +860,7 @@ export default function SnapCalHome() {
       }
 
       return (
-        log.name === selectedCandidate.name &&
+        log.name === draftMealName &&
         log.kcalRange[0] === draftRange[0] &&
         log.kcalRange[1] === draftRange[1] &&
         [...log.modifiers].sort().join("|") === modifierSignature
@@ -677,8 +901,8 @@ export default function SnapCalHome() {
         isZh
           ? `${formatLoggedTime(
               recentDuplicateLog.loggedAt,
-            )} 已经有一条相似的 ${selectedCandidate.name}。如果这确实是另一餐，再点一次「记录这餐」。`
-          : `${selectedCandidate.name} already appears at ${formatLoggedTime(
+            )} 已经有一条相似的 ${draftMealName}。如果这确实是另一餐，再点一次「记录这餐」。`
+          : `${draftMealName} already appears at ${formatLoggedTime(
               recentDuplicateLog.loggedAt,
             )}. If this is truly another meal, tap "Log this meal" again.`,
       );
@@ -693,18 +917,18 @@ export default function SnapCalHome() {
 
     if (editingLogDraft) {
       updateLog(editingLogDraft.id, {
-        name: selectedCandidate.name,
+        name: draftMealName,
         loggedAt: editingLogDraft.loggedAt,
         kcalRange: draftRange,
         macroRange: draftMacroRange,
         confidence: currentConfidence,
-        modifiers: draftModifierLabels,
+        modifiers: draftLogModifierLabels,
         source: editingLogDraft.source,
       });
       resetDraft(
         isZh
-          ? `${selectedCandidate.name} 已更新到今天的记录里。当前草稿已收起。`
-          : `${selectedCandidate.name} was updated in today's log. The draft is now closed.`,
+          ? `${draftMealName} 已更新到今天的记录里。当前草稿已收起。`
+          : `${draftMealName} was updated in today's log. The draft is now closed.`,
       );
       return;
     }
@@ -713,18 +937,18 @@ export default function SnapCalHome() {
 
     addLog({
       id: crypto.randomUUID(),
-      name: selectedCandidate.name,
+      name: draftMealName,
       loggedAt,
       kcalRange: draftRange,
       macroRange: draftMacroRange,
       confidence: currentConfidence,
-      modifiers: draftModifierLabels,
+      modifiers: draftLogModifierLabels,
       source: inputMode,
     });
     resetDraft(
       isZh
-        ? `${selectedCandidate.name} 已加入今天的餐食记录。可以继续拍下一餐。`
-        : `${selectedCandidate.name} was added to today's meals. You can start the next meal now.`,
+        ? `${draftMealName} 已加入今天的餐食记录。可以继续拍下一餐。`
+        : `${draftMealName} was added to today's meals. You can start the next meal now.`,
     );
   }
 
@@ -734,12 +958,12 @@ export default function SnapCalHome() {
       modifiers: log.modifiers,
     });
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
     setAnalysisUploadFile(null);
+    setAnalysisUploadFiles([]);
+    setPreviewUrl(null);
+    setPreviewUrls([]);
     setDishHint("");
     setDraftDishQuery("");
     setPreviewName("No photo selected yet");
@@ -866,9 +1090,81 @@ export default function SnapCalHome() {
               ref={galleryInputRef}
               hidden
               accept="image/*"
+              multiple
               type="file"
               onChange={(event) => handleFileChange(event, "gallery")}
             />
+
+            <div className="mt-5 rounded-[18px] bg-[var(--surface-2)] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--muted)]">
+                    {isZh ? "这餐怎么吃" : "Meal context"}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                    {isZh
+                      ? "单人餐直接估整份；聚餐会按你的份额折算。"
+                      : "Solo logs the full meal; shared meals scale to your share."}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 overflow-hidden rounded-full border border-[var(--line)] bg-white p-1 text-sm font-bold">
+                  {(["solo", "shared"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setServingMode(mode)}
+                      className={`rounded-full px-4 py-2 transition ${
+                        servingMode === mode
+                          ? "bg-[var(--foreground)] text-white"
+                          : "text-[var(--foreground)] hover:bg-[rgba(31,23,18,0.06)]"
+                      }`}
+                    >
+                      {mode === "solo"
+                        ? isZh
+                          ? "单人"
+                          : "Solo"
+                        : isZh
+                          ? "聚餐"
+                          : "Shared"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {servingMode === "shared" ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                      {isZh ? "几个人分" : "People sharing"}
+                    </span>
+                    <input
+                      min="1"
+                      max="12"
+                      type="number"
+                      value={sharedPeople}
+                      onChange={(event) =>
+                        setSharedPeople(clampShareInput(Number(event.target.value)))
+                      }
+                      className="rounded-[14px] border border-[var(--line)] bg-white px-4 py-3 text-base font-bold outline-none transition focus:border-[var(--coral)] focus:ring-4 focus:ring-[rgba(242,80,43,0.12)]"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                      {isZh ? "我吃了几人份" : "My share"}
+                    </span>
+                    <input
+                      min="1"
+                      max="12"
+                      type="number"
+                      value={myShare}
+                      onChange={(event) =>
+                        setMyShare(clampShareInput(Number(event.target.value)))
+                      }
+                      className="rounded-[14px] border border-[var(--line)] bg-white px-4 py-3 text-base font-bold outline-none transition focus:border-[var(--coral)] focus:ring-4 focus:ring-[rgba(242,80,43,0.12)]"
+                    />
+                  </label>
+                </div>
+              ) : null}
+            </div>
 
             {inputMode === "text" ? (
               <div className="mt-5 rounded-[18px] bg-[var(--surface-2)] p-4">
@@ -975,9 +1271,28 @@ export default function SnapCalHome() {
                       {previewUrl
                         ? previewName
                         : isZh
-                          ? "最快是直接拍照，也可以从相册选择。"
-                          : "Use the camera for the fastest flow, or choose one from your gallery."}
+                          ? "最快是直接拍照；一餐多个菜时可以从相册一次选多张。"
+                          : "Use the camera for the fastest flow; choose multiple gallery photos for a full meal."}
                     </p>
+                    {previewUrls.length > 1 ? (
+                      <div className="mt-3 grid grid-cols-4 gap-2">
+                        {previewUrls.map((url, index) => (
+                          <div
+                            key={url}
+                            className="relative aspect-square overflow-hidden rounded-[12px] border border-white bg-[var(--surface-2)]"
+                          >
+                            <Image
+                              src={url}
+                              alt={`Meal preview ${index + 1}`}
+                              width={160}
+                              height={160}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <button
@@ -993,6 +1308,15 @@ export default function SnapCalHome() {
                           ? "选择照片"
                           : "Choose photo"}
                     </button>
+                    {inputMode === "gallery" ? (
+                      <button
+                        type="button"
+                        className="rounded-[14px] border border-[var(--line)] bg-white px-4 py-3 text-sm font-bold text-[var(--foreground)] transition hover:border-[var(--coral)]"
+                        onClick={() => galleryInputRef.current?.click()}
+                      >
+                        {isZh ? "一次选多张" : "Choose multiple"}
+                      </button>
+                    ) : null}
                     {(hasDraft || previewUrl) ? (
                       <button
                         type="button"
@@ -1007,7 +1331,7 @@ export default function SnapCalHome() {
               </div>
             )}
 
-            {analysisUploadFile && hasDraft ? (
+            {analysisUploadFiles.length > 0 && hasDraft ? (
               <div className="mt-4 rounded-[18px] border border-[var(--line)] bg-[var(--surface-2)] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -1065,7 +1389,7 @@ export default function SnapCalHome() {
               </div>
             ) : null}
 
-            {analysisUploadFile ? (
+            {analysisUploadFiles.length > 0 ? (
               <form
                 className="mt-4 rounded-[18px] border border-[var(--line)] bg-[var(--surface-2)] p-4"
                 onSubmit={handleDishHintSubmit}
@@ -1156,13 +1480,64 @@ export default function SnapCalHome() {
                       ) : null}
                     </div>
                     <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-[var(--foreground)]">
-                      {selectedCandidate.name}
+                      {draftMealName}
                     </h2>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      {selectedCandidate.chineseName}
+                      {draftItemEstimates.length > 1
+                        ? isZh
+                          ? `${draftItemEstimates.length} 个项目 · ${selectedCandidate.chineseName}`
+                          : `${draftItemEstimates.length} items · ${selectedCandidate.chineseName}`
+                        : selectedCandidate.chineseName}
                     </p>
                   </div>
                 </div>
+
+                {draftItemEstimates.length > 1 ? (
+                  <div className="rounded-[18px] border border-[var(--line)] bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-[var(--muted)]">
+                        {isZh ? "本餐项目" : "Meal items"}
+                      </p>
+                      {servingMode === "shared" ? (
+                        <span className="rounded-full bg-[var(--amber-tint)] px-3 py-1 text-xs font-bold text-[#9b6418]">
+                          {isZh
+                            ? `按 ${safeMyShare}/${safeSharedPeople} 计算`
+                            : `Scaled ${safeMyShare}/${safeSharedPeople}`}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {draftItemEstimates.map((item, index) => {
+                        const active = index === activeItemIndex;
+                        return (
+                          <button
+                            key={`${item.candidate.id}-${index}`}
+                            type="button"
+                            onClick={() => selectDraftItem(index)}
+                            className={`flex items-center justify-between gap-3 rounded-[14px] border px-3 py-2 text-left transition ${
+                              active
+                                ? "border-[var(--coral)] bg-[var(--coral-tint)] text-[var(--coral-ink)]"
+                                : "border-[var(--line)] bg-[var(--surface-2)] text-[var(--foreground)] hover:border-[var(--coral)]"
+                            }`}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-bold">
+                                {item.candidate.name}
+                              </span>
+                              <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                                {item.candidate.chineseName}
+                                {item.portion !== 1 ? ` · x${item.portion}` : ""}
+                              </span>
+                            </span>
+                            <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--foreground)]">
+                              {formatCalories(item.kcalRange)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="rounded-[18px] bg-[var(--surface-2)] p-4">
                   <p className="text-sm font-semibold text-[var(--muted)]">
